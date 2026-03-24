@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 
@@ -36,9 +37,12 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', ts: new Date().toI
 app.use('/api/logs',     require('./routes/api/logs'));
 app.use('/api/settings', require('./routes/api/settings'));
 app.use('/api/stats',    require('./routes/api/stats'));
+app.use('/api/weather',  require('./routes/api/weather'));
+app.use('/api/auth',     require('./routes/api/auth'));
 
 // Page routes
 const pages = path.join(__dirname, 'public', 'pages');
+app.get('/login',    (req, res) => res.sendFile(path.join(pages, 'login.html')));
 app.get('/',         (req, res) => res.sendFile(path.join(pages, 'home.html')));
 app.get('/history',  (req, res) => res.sendFile(path.join(pages, 'history.html')));
 app.get('/stats',    (req, res) => res.sendFile(path.join(pages, 'stats.html')));

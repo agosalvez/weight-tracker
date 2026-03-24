@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Acceder – Weight Tracker</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    body { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; background: var(--bg); }
+
+    .login-wrap {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 24px 20px 40px;
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .login-logo-icon {
+      width: 72px;
+      height: 72px;
+      background: var(--primary);
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(99,102,241,0.35);
+    }
+
+    .login-logo-icon svg { stroke: #fff; }
+
+    .login-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.03em;
+    }
+
+    .login-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .login-card {
+      background: var(--card);
+      border-radius: var(--radius-xl);
+      padding: 28px 24px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .login-card h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--text);
+    }
+
+    .divider-text {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .divider-text::before,
+    .divider-text::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .btn-passkey {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--card);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .btn-passkey:hover { border-color: var(--primary); background: var(--primary-50); }
+    .btn-passkey:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .passkey-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .passkey-icon svg { stroke: #fff; }
+
+    #passkeyBtn { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-logo">
+    <div class="login-logo-icon">
+      <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <div class="login-title">Weight Tracker</div>
+    <div class="login-subtitle">Tu seguimiento personal de progreso</div>
+  </div>
+
+  <div class="login-card">
+    <!-- MODO SETUP (primer usuario) -->
+    <div id="setupMode" style="display:none">
+      <h2>Crear tu cuenta</h2>
+
+      <div class="form-group">
+        <label class="form-label">Nombre de usuario</label>
+        <input type="text" id="setupUsername" class="form-input" placeholder="ej: adrian" autocomplete="username" autocapitalize="none">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nombre visible (opcional)</label>
+        <input type="text" id="setupDisplayName" class="form-input" placeholder="ej: Adrián">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input type="password" id="setupPassword" class="form-input" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmar contraseña</label>
+        <input type="password" id="setupPassword2" class="form-input" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary btn-block" id="setupBtn">Crear cuenta</button>
+    </div>
+
+    <!-- MODO LOGIN -->
+    <div id="loginMode" style="display:none">
+      <h2>Bienvenido de nuevo</h2>
+
+      <!-- Face ID / Passkey -->
+      <button class="btn-passkey" id="passkeyBtn">
+        <div class="passkey-icon">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="4"/><path d="M3 20c0-4.4 4-8 9-8s9 3.6 9 8"/>
+            <path d="M18 14.5l1.5 1.5L22 13" stroke="#fff"/>
+          </svg>
+        </div>
+        Entrar con Face ID / huella
+      </button>
+
+      <div class="divider-text" id="orDivider">o</div>
+
+      <div class="form-group">
+        <label class="form-label">Usuario</label>
+        <input type="text" id="loginUsername" class="form-input" placeholder="Tu usuario" autocomplete="username" autocapitalize="none">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input type="password" id="loginPassword" class="form-input" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary btn-block" id="loginBtn">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script type="module">
+  // Importar SimpleWebAuthn desde CDN
+  let startRegistration, startAuthentication;
+  try {
+    const mod = await import('https://esm.sh/@simplewebauthn/browser@9');
+    startRegistration   = mod.startRegistration;
+    startAuthentication = mod.startAuthentication;
+  } catch {
+    // WebAuthn CDN no disponible — solo contraseña
+  }
+
+  // ─── Determinar modo ────────────────────────────────────────────────────────
+
+  const { data: status } = await fetch('/api/auth/status').then(r => r.json());
+
+  if (status.needsSetup) {
+    document.getElementById('setupMode').style.display = 'block';
+  } else {
+    document.getElementById('loginMode').style.display = 'block';
+    // Mostrar botón Face ID si el navegador soporta WebAuthn
+    if (startAuthentication && window.PublicKeyCredential) {
+      document.getElementById('passkeyBtn').style.display = 'flex';
+    }
+  }
+
+  // ─── Setup (primer usuario) ─────────────────────────────────────────────────
+
+  document.getElementById('setupBtn')?.addEventListener('click', async () => {
+    const username    = document.getElementById('setupUsername').value.trim();
+    const displayName = document.getElementById('setupDisplayName').value.trim();
+    const password    = document.getElementById('setupPassword').value;
+    const password2   = document.getElementById('setupPassword2').value;
+
+    if (!username || !password) { showToast('Completa todos los campos', 'error'); return; }
+    if (password.length < 6)    { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
+    if (password !== password2) { showToast('Las contraseñas no coinciden', 'error'); return; }
+
+    const btn = document.getElementById('setupBtn');
+    btn.disabled = true; btn.textContent = 'Creando cuenta…';
+
+    try {
+      const data = await API.register({ username, password, displayName: displayName || username });
+      Auth.save(data.token, data.user);
+      window.location.href = '/';
+    } catch (e) {
+      showToast(e.message, 'error');
+      btn.disabled = false; btn.textContent = 'Crear cuenta';
+    }
+  });
+
+  // ─── Login con contraseña ───────────────────────────────────────────────────
+
+  document.getElementById('loginBtn')?.addEventListener('click', async () => {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    if (!username || !password) { showToast('Introduce usuario y contraseña', 'error'); return; }
+
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true; btn.textContent = 'Entrando…';
+
+    try {
+      const data = await API.login({ username, password });
+      Auth.save(data.token, data.user);
+      window.location.href = '/';
+    } catch (e) {
+      showToast(e.message, 'error');
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  });
+
+  // Enter en contraseña → login
+  document.getElementById('loginPassword')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('loginBtn')?.click();
+  });
+  document.getElementById('setupPassword2')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('setupBtn')?.click();
+  });
+
+  // ─── Login con Face ID / Passkey ────────────────────────────────────────────
+
+  document.getElementById('passkeyBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('passkeyBtn');
+    btn.disabled = true;
+
+    try {
+      const optsRes = await API.passkeyLoginOpts();
+      if (!optsRes.success) throw new Error(optsRes.error);
+
+      const assertion = await startAuthentication(optsRes.data);
+      const verifyRes = await API.passkeyLoginVerify(assertion);
+
+      if (!verifyRes.success) throw new Error(verifyRes.error);
+
+      Auth.save(verifyRes.data.token, verifyRes.data.user);
+      window.location.href = '/';
+    } catch (e) {
+      if (e.name !== 'NotAllowedError') { // Usuario canceló
+        showToast('Face ID no disponible: ' + e.message, 'error');
+      }
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

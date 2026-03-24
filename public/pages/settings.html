@@ -13,12 +13,29 @@
 <!-- CABECERA -->
 <div class="page-header">
   <div class="page" style="padding-bottom:0">
-    <h1>Ajustes</h1>
-    <p class="subtitle">Perfil y objetivos</p>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <h1>Ajustes</h1>
+        <p class="subtitle" id="headerUser">Perfil y objetivos</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="logoutBtn" style="color:rgba(255,255,255,0.8);border-color:rgba(255,255,255,0.3)">Salir</button>
+    </div>
   </div>
 </div>
 
 <div class="page">
+
+  <!-- SEGURIDAD: FACE ID -->
+  <div class="settings-section" id="passkeySection" style="display:none">
+    <p class="settings-section-title">Face ID / Huella digital</p>
+    <p style="font-size:0.83rem;color:var(--text-muted);margin-bottom:14px">
+      Accede sin contraseña desde este dispositivo usando biometría.
+    </p>
+    <div id="passkeyList" style="margin-bottom:12px"></div>
+    <button class="btn btn-secondary btn-block" id="addPasskeyBtn">
+      + Añadir este dispositivo
+    </button>
+  </div>
 
   <!-- PERFIL -->
   <div class="settings-section">
@@ -132,11 +149,86 @@
 
 <script src="/js/app.js"></script>
 <script src="/js/settings.js"></script>
-<script>
-  async function confirmDeleteAll() {
+<script type="module">
+  // Logout
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    Auth.clear();
+    window.location.href = '/login';
+  });
+
+  // Mostrar usuario en cabecera
+  const user = Auth.getUser();
+  if (user) {
+    document.getElementById('headerUser').textContent = user.displayName || user.username;
+  }
+
+  // ─── Face ID / Passkey ──────────────────────────────────────────────────────
+  let startRegistration;
+  try {
+    const mod = await import('https://esm.sh/@simplewebauthn/browser@9');
+    startRegistration = mod.startRegistration;
+  } catch {}
+
+  if (startRegistration && window.PublicKeyCredential) {
+    document.getElementById('passkeySection').style.display = 'block';
+    loadPasskeys();
+  }
+
+  async function loadPasskeys() {
+    try {
+      const creds = await API.getPasskeys();
+      const list  = document.getElementById('passkeyList');
+      if (!creds.length) {
+        list.innerHTML = '<p style="font-size:0.83rem;color:var(--text-muted)">Aún no has añadido ningún dispositivo.</p>';
+        return;
+      }
+      list.innerHTML = creds.map(c => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:8px">
+          <div>
+            <div style="font-size:0.87rem;font-weight:600">${c.device_name}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">${new Date(c.created_at).toLocaleDateString('es-ES')}</div>
+          </div>
+          <button onclick="removePasskey(${c.id})" style="background:none;border:none;color:var(--error);cursor:pointer;font-size:0.8rem;font-weight:600;padding:4px 8px">Eliminar</button>
+        </div>
+      `).join('');
+    } catch {}
+  }
+
+  window.removePasskey = async (id) => {
+    try {
+      await API.deletePasskey(id);
+      loadPasskeys();
+      showToast('Dispositivo eliminado');
+    } catch (e) {
+      showToast('Error: ' + e.message, 'error');
+    }
+  };
+
+  document.getElementById('addPasskeyBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('addPasskeyBtn');
+    btn.disabled = true; btn.textContent = 'Esperando biometría…';
+
+    try {
+      const options  = await API.passkeyRegOpts();
+      const deviceName = navigator.userAgentData?.platform || navigator.platform || 'Dispositivo';
+      const credential = await startRegistration(options);
+      await API.passkeyRegVerify({ ...credential, deviceName });
+      showToast('Dispositivo añadido correctamente');
+      loadPasskeys();
+    } catch (e) {
+      if (e.name !== 'NotAllowedError') {
+        showToast('Error: ' + e.message, 'error');
+      }
+    } finally {
+      btn.disabled = false; btn.textContent = '+ Añadir este dispositivo';
+    }
+  });
+
+  // ─── Borrar todos los registros ─────────────────────────────────────────────
+  window.confirmDeleteAll = () => {
     showConfirm(
       'Borrar todos los registros',
-      'Esta acción eliminará TODOS los registros diarios de forma permanente. No se puede deshacer.',
+      'Esta acción eliminará TODOS tus registros diarios de forma permanente. No se puede deshacer.',
       async () => {
         try {
           const logs = await API.getLogs();
@@ -147,7 +239,7 @@
         }
       }
     );
-  }
+  };
 </script>
 </body>
 </html>

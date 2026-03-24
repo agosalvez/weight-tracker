@@ -10,6 +10,11 @@ services:
       - weight_data:/app/data
     environment:
       - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - RP_ID=weight-tracker.gosalvez.es
+      - ORIGIN=https://weight-tracker.gosalvez.es
+      - AEMET_API_KEY=${AEMET_API_KEY}
+      - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}
     labels:
       - "traefik.enable=true"
       - "traefik.http.middlewares.weight-tracker-https.redirectscheme.scheme=https"

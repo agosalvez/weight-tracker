@@ -1,27 +1,87 @@
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+const Auth = {
+  getToken() { return localStorage.getItem('wt_token'); },
+  getUser()  { try { return JSON.parse(localStorage.getItem('wt_user')); } catch { return null; } },
+
+  save(token, user) {
+    localStorage.setItem('wt_token', token);
+    localStorage.setItem('wt_user', JSON.stringify(user));
+  },
+
+  clear() {
+    localStorage.removeItem('wt_token');
+    localStorage.removeItem('wt_user');
+  },
+
+  guard() {
+    if (!this.getToken() && window.location.pathname !== '/login') {
+      window.location.href = '/login';
+      return false;
+    }
+    return true;
+  },
+};
+
+// Redirigir a home si ya está logado y va a /login
+if (window.location.pathname === '/login' && Auth.getToken()) {
+  window.location.href = '/';
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 const API = {
   async _fetch(url, opts = {}) {
-    const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    const token = Auth.getToken();
+    const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res  = await fetch(url, { ...opts, headers });
     const json = await res.json();
+
+    if (res.status === 401) {
+      Auth.clear();
+      window.location.href = '/login';
+      throw new Error('Sesión expirada');
+    }
+
     if (!res.ok || !json.success) throw new Error(json.error || 'Error de servidor');
     return json.data;
   },
 
-  getLogs:       (params = {}) => API._fetch('/api/logs?' + new URLSearchParams(params)),
-  getLog:        date          => API._fetch(`/api/logs/${date}`),
-  saveLog:       data          => API._fetch('/api/logs', { method: 'POST', body: JSON.stringify(data) }),
-  updateLog:     (date, data)  => API._fetch(`/api/logs/${date}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteLog:     date          => API._fetch(`/api/logs/${date}`, { method: 'DELETE' }),
+  getLogs:        (params = {}) => API._fetch('/api/logs?' + new URLSearchParams(params)),
+  getLog:         date          => API._fetch(`/api/logs/${date}`),
+  saveLog:        data          => API._fetch('/api/logs', { method: 'POST', body: JSON.stringify(data) }),
+  deleteLog:      date          => API._fetch(`/api/logs/${date}`, { method: 'DELETE' }),
 
-  getSettings:   ()     => API._fetch('/api/settings'),
-  saveSettings:  data   => API._fetch('/api/settings', { method: 'POST', body: JSON.stringify(data) }),
+  getSettings:    ()     => API._fetch('/api/settings'),
+  saveSettings:   data   => API._fetch('/api/settings', { method: 'POST', body: JSON.stringify(data) }),
 
-  getSummary:    ()     => API._fetch('/api/stats/summary'),
-  getWeightTrend: days  => API._fetch(`/api/stats/weight-trend?days=${days || 90}`),
-  getCalTrend:   days   => API._fetch(`/api/stats/calories-trend?days=${days || 30}`),
-  getPrediction: ()     => API._fetch('/api/stats/prediction'),
+  getSummary:     ()     => API._fetch('/api/stats/summary'),
+  getWeightTrend: days   => API._fetch(`/api/stats/weight-trend?days=${days || 90}`),
+  getCalTrend:    days   => API._fetch(`/api/stats/calories-trend?days=${days || 30}`),
+  getPrediction:  ()     => API._fetch('/api/stats/prediction'),
+
+  // Auth
+  authStatus:     ()          => fetch('/api/auth/status').then(r => r.json()),
+  login:          data        => API._fetch('/api/auth/login',   { method: 'POST', body: JSON.stringify(data) }),
+  register:       data        => API._fetch('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  getMe:          ()          => API._fetch('/api/auth/me'),
+  getPasskeys:    ()          => API._fetch('/api/auth/webauthn/credentials'),
+  deletePasskey:  id          => API._fetch(`/api/auth/webauthn/${id}`, { method: 'DELETE' }),
+  passkeyRegOpts: ()          => API._fetch('/api/auth/webauthn/register/options'),
+  passkeyRegVerify: data      => API._fetch('/api/auth/webauthn/register/verify', { method: 'POST', body: JSON.stringify(data) }),
+  passkeyLoginOpts: ()        => fetch('/api/auth/webauthn/login/options', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).then(r => r.json()),
+  passkeyLoginVerify: data    => fetch('/api/auth/webauthn/login/verify',  { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
 };
+
+// ─── Guard en páginas protegidas ─────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.location.pathname !== '/login') {
+    Auth.guard();
+  }
+});
 
 // ─── Fecha ────────────────────────────────────────────────────────────────────
 
@@ -31,7 +91,6 @@ function today() {
 }
 
 function formatDateEs(dateStr) {
-  // dateStr = "2024-03-24"
   const [y, m, d] = dateStr.split('-');
   const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
