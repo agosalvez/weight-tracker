@@ -231,7 +231,7 @@ router.post('/webauthn/login/options', async (req, res) => {
   try {
     const options = await generateAuthenticationOptions({
       rpID:             RP_ID,
-      userVerification: 'discouraged',
+      userVerification: 'preferred',
       allowCredentials: [],
     });
 
