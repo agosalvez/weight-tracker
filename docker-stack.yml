@@ -12,9 +12,9 @@ services:
       - PORT=3000
     labels:
       - "traefik.enable=true"
-      - "traefik.http.middlewares.middleware-secure.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.weight-tracker-https.redirectscheme.scheme=https"
       - "traefik.http.routers.weight-tracker.entrypoints=web"
-      - "traefik.http.routers.weight-tracker.middlewares=middleware-secure"
+      - "traefik.http.routers.weight-tracker.middlewares=weight-tracker-https"
       - "traefik.http.routers.weight-tracker.rule=Host(`weight-tracker.gosalvez.es`)"
       - "traefik.http.routers.weight-tracker-secure.tls=true"
       - "traefik.http.routers.weight-tracker-secure.tls.certresolver=myresolver"
