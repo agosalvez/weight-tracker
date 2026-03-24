@@ -14,11 +14,16 @@ services:
       restart_policy:
         condition: on-failure
       labels:
-        - traefik.enable=true
-        - traefik.http.routers.weight-tracker.rule=Host(`weight.TUDOMINIO.com`)
-        - traefik.http.routers.weight-tracker.entrypoints=websecure
-        - traefik.http.routers.weight-tracker.tls.certresolver=letsencrypt
-        - traefik.http.services.weight-tracker.loadbalancer.server.port=3000
+        - "traefik.enable=true"
+        - "traefik.http.middlewares.middleware-secure.redirectscheme.scheme=https"
+        - "traefik.http.routers.weight-tracker.entrypoints=web"
+        - "traefik.http.routers.weight-tracker.middlewares=middleware-secure"
+        - "traefik.http.routers.weight-tracker.rule=Host(`weight-tracker.gosalvez.es`)"
+        - "traefik.http.routers.weight-tracker-secure.tls=true"
+        - "traefik.http.routers.weight-tracker-secure.tls.certresolver=myresolver"
+        - "traefik.http.routers.weight-tracker-secure.entrypoints=websecure"
+        - "traefik.http.routers.weight-tracker-secure.rule=Host(`weight-tracker.gosalvez.es`)"
+        - "traefik.http.services.weight-tracker-secure.loadbalancer.server.port=3000"
 
 networks:
   traefik-public:
