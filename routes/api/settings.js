@@ -20,7 +20,8 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const uid = req.user.id;
-    const { name, sex, age, height_cm, target_weight_kg, estimated_bmr, estimated_tdee, activity_level } = req.body;
+    const { name, sex, age, height_cm, target_weight_kg, estimated_bmr, estimated_tdee, activity_level,
+            aemet_municipality_id, aemet_municipality_name } = req.body;
 
     const latestLog = db.prepare('SELECT weight_kg FROM daily_logs WHERE weight_kg IS NOT NULL AND user_id = ? ORDER BY date DESC LIMIT 1').get(uid);
     const weight = latestLog?.weight_kg;
@@ -37,17 +38,21 @@ router.post('/', (req, res) => {
 
     // Upsert settings para el usuario
     db.prepare(`
-      INSERT INTO settings (user_id, name, sex, age, height_cm, target_weight_kg, estimated_bmr, estimated_tdee, activity_level, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      INSERT INTO settings (user_id, name, sex, age, height_cm, target_weight_kg, estimated_bmr, estimated_tdee, activity_level, aemet_municipality_id, aemet_municipality_name, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
       ON CONFLICT(user_id) DO UPDATE SET
         name=excluded.name, sex=excluded.sex, age=excluded.age,
         height_cm=excluded.height_cm, target_weight_kg=excluded.target_weight_kg,
         estimated_bmr=excluded.estimated_bmr, estimated_tdee=excluded.estimated_tdee,
-        activity_level=excluded.activity_level, updated_at=excluded.updated_at
+        activity_level=excluded.activity_level,
+        aemet_municipality_id=excluded.aemet_municipality_id,
+        aemet_municipality_name=excluded.aemet_municipality_name,
+        updated_at=excluded.updated_at
     `).run(uid, name ?? null, sex ?? null, age ? parseInt(age) : null,
            height_cm ? parseFloat(height_cm) : null,
            target_weight_kg ? parseFloat(target_weight_kg) : null,
-           bmr, tdee, activity_level || 'sedentary');
+           bmr, tdee, activity_level || 'sedentary',
+           aemet_municipality_id ?? null, aemet_municipality_name ?? null);
 
     res.json({ success: true, data: db.prepare('SELECT * FROM settings WHERE user_id = ?').get(uid) });
   } catch (e) {

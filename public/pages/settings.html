@@ -179,6 +179,15 @@
       <p class="form-hint">Si lo dejas vacío, se calculará automáticamente a partir de tu BMR</p>
     </div>
 
+    <!-- Localidad del tiempo -->
+    <div class="form-group" style="position:relative">
+      <label class="form-label">Localidad para el tiempo</label>
+      <input type="text" id="locationSearch" class="form-input" placeholder="Escribe tu municipio…" autocomplete="off">
+      <input type="hidden" id="locationId">
+      <div id="locationDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);z-index:100;box-shadow:var(--shadow-md);max-height:220px;overflow-y:auto"></div>
+      <p class="form-hint">Se usará para el widget del tiempo en la pantalla principal</p>
+    </div>
+
     <!-- BMR/TDEE display -->
     <div class="bmr-box hidden" id="bmrBox" style="margin-top:14px">
       <div id="bmrNote" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px"></div>
@@ -195,6 +204,24 @@
 
   <!-- GUARDAR -->
   <button class="btn btn-primary btn-block" id="saveBtn">Guardar ajustes</button>
+
+  <!-- CAMBIAR CONTRASEÑA -->
+  <div class="settings-section" style="margin-top:24px">
+    <p class="settings-section-title">Seguridad</p>
+    <div class="form-group">
+      <label class="form-label">Contraseña actual</label>
+      <input type="password" id="pwCurrent" class="form-input" autocomplete="current-password" placeholder="••••••">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nueva contraseña</label>
+      <input type="password" id="pwNew1" class="form-input" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+    </div>
+    <div class="form-group mb-0">
+      <label class="form-label">Confirmar nueva contraseña</label>
+      <input type="password" id="pwNew2" class="form-input" autocomplete="new-password" placeholder="Repite la contraseña">
+    </div>
+    <button class="btn btn-secondary btn-block" style="margin-top:14px" id="changePwBtn">Cambiar contraseña</button>
+  </div>
 
   <!-- ZONA PELIGRO -->
   <div class="settings-section" style="margin-top:24px;border:1px solid #fecaca;">
@@ -230,6 +257,33 @@
 <script src="/js/app.js"></script>
 <script src="/js/settings.js"></script>
 <script type="module">
+  // ─── Cambiar contraseña ───────────────────────────────────────────────────────
+  document.getElementById('changePwBtn').addEventListener('click', async () => {
+    const current = document.getElementById('pwCurrent').value;
+    const pw1     = document.getElementById('pwNew1').value;
+    const pw2     = document.getElementById('pwNew2').value;
+
+    if (!current)          { showToast('Introduce tu contraseña actual', 'error'); return; }
+    if (!pw1 || pw1.length < 6) { showToast('La nueva contraseña debe tener al menos 6 caracteres', 'error'); return; }
+    if (pw1 !== pw2)       { showToast('Las contraseñas no coinciden', 'error'); return; }
+
+    const btn = document.getElementById('changePwBtn');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+
+    try {
+      const data = await API.changePassword({ currentPassword: current, newPassword: pw1 });
+      Auth.save(data.token, data.user);
+      showToast('Contraseña actualizada');
+      document.getElementById('pwCurrent').value = '';
+      document.getElementById('pwNew1').value    = '';
+      document.getElementById('pwNew2').value    = '';
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Cambiar contraseña';
+    }
+  });
+
   // Logout
   document.getElementById('logoutBtn').addEventListener('click', () => {
     Auth.clear();

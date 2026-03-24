@@ -145,6 +145,14 @@ if (!userCols.includes('force_password_change')) {
   console.log('[db] Columna force_password_change añadida');
 }
 
+// ── Paso 4: añadir columnas de localidad del tiempo a settings ────────────────
+const settingsCols = db.pragma('table_info(settings)').map(c => c.name);
+if (!settingsCols.includes('aemet_municipality_id')) {
+  db.exec(`ALTER TABLE settings ADD COLUMN aemet_municipality_id TEXT`);
+  db.exec(`ALTER TABLE settings ADD COLUMN aemet_municipality_name TEXT`);
+  console.log('[db] Columnas aemet_municipality añadidas a settings');
+}
+
 // ── Tabla de configuración de la app ──────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS app_config (

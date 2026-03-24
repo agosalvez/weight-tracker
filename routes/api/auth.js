@@ -231,8 +231,8 @@ router.post('/webauthn/login/options', async (req, res) => {
   try {
     const options = await generateAuthenticationOptions({
       rpID:             RP_ID,
-      userVerification: 'preferred',
-      allowCredentials: [], // passkey mode — el navegador elige
+      userVerification: 'discouraged',
+      allowCredentials: [],
     });
 
     cleanPending();
@@ -262,8 +262,9 @@ router.post('/webauthn/login/verify', async (req, res) => {
         }
         return false;
       },
-      expectedOrigin:  ORIGIN,
-      expectedRPID:    RP_ID,
+      expectedOrigin:        ORIGIN,
+      expectedRPID:          RP_ID,
+      requireUserVerification: false,
       authenticator: {
         credentialID:        Uint8Array.from(Buffer.from(dbCred.credential_id, 'base64url')),
         credentialPublicKey: Uint8Array.from(Buffer.from(dbCred.public_key, 'base64')),

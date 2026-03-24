@@ -209,12 +209,8 @@ function setText(id, val) {
 
 async function loadWeather() {
   try {
-    const res = await fetch('/api/weather');
-    if (!res.ok) return;
-    const json = await res.json();
-    if (!json.success) return;
-
-    const w = json.data;
+    const w = await API._fetch('/api/weather');
+    if (!w) return; // sin localidad configurada
     const widget = document.getElementById('weatherWidget');
 
     document.getElementById('weatherIcon').textContent = w.icon;
@@ -226,12 +222,14 @@ async function loadWeather() {
 
     const parts = [];
     if (w.rainProb != null) parts.push(`${w.rainProb}% lluvia`);
-    if (w.wind != null) parts.push(`${w.wind} km/h`);
+    if (w.wind != null)     parts.push(`${w.wind} km/h`);
     document.getElementById('weatherRain').textContent = parts.join(' · ');
 
+    if (w.locationName) {
+      widget.title = `${w.locationName} — ${w.sky || ''}`;
+    }
     widget.style.display = 'flex';
-    widget.title = w.sky || '';
-  } catch (e) {
+  } catch {
     // Silencioso — el widget simplemente no aparece
   }
 }

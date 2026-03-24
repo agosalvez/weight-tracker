@@ -20,9 +20,10 @@ Una web app **mobile-first** pensada para que abrir, registrar y cerrar te lleve
 - **Predice** cuándo llegarás a tu peso objetivo con regresión lineal
 - **Avisa** si tu ritmo de bajada es demasiado agresivo o saludable
 - **IMC** con barra visual y categoría de peso
-- **Widget del tiempo** de AEMET en la cabecera (opcional)
+- **Widget del tiempo** de AEMET con localidad configurable por usuario
 - **Multi-usuario** — cada persona tiene sus propios datos completamente separados
 - **Face ID / huella digital** — acceso sin contraseña desde móvil o tablet (WebAuthn)
+- **Panel de administración** — gestión de usuarios, roles y configuración del registro
 
 Todo esto corriendo en **tu propio servidor**, con tus datos solo en tu máquina.
 
@@ -101,7 +102,11 @@ Requiere HTTPS en producción (ya incluido si usas Traefik).
 
 ### Múltiples usuarios
 
-Cada usuario tiene sus propios registros, ajustes y estadísticas completamente separados. El administrador puede gestionar usuarios desde **Ajustes → Panel de administración**: crear cuentas, cambiar roles y activar/desactivar el registro público con un toggle.
+Cada usuario tiene sus propios registros, ajustes y estadísticas completamente separados. El administrador puede gestionar usuarios desde **Ajustes → Panel de administración**: crear cuentas, cambiar roles y activar/desactivar el registro público con un toggle. El primer usuario registrado siempre es administrador.
+
+### Widget del tiempo
+
+Cada usuario configura su propia localidad en **Ajustes → Localidad para el tiempo**. Al escribir el nombre del municipio aparece un autocompletado con los ~8.000 municipios de España de AEMET. El widget muestra icono del cielo, temperaturas min/máx y probabilidad de lluvia. Requiere `AEMET_API_KEY`.
 
 ---
 
@@ -164,7 +169,8 @@ weight-tracker/
 │   ├── logs.js                 # CRUD registros diarios
 │   ├── settings.js             # Perfil y objetivos
 │   ├── stats.js                # Estadísticas y predicción
-│   └── weather.js              # Widget del tiempo (AEMET, caché 1h)
+│   ├── admin.js                # Panel de administración (solo admin)
+│   └── weather.js              # Widget del tiempo (AEMET, caché por municipio)
 ├── utils/calculations.js       # BMR, TDEE, media móvil, regresión lineal
 └── public/
     ├── css/app.css
@@ -217,7 +223,20 @@ Todas las rutas de datos requieren autenticación (`Authorization: Bearer <token
 | `GET` | `/api/stats/weight-trend` | Gráfica de peso (`?days=90`) |
 | `GET` | `/api/stats/calories-trend` | Gráfica de calorías (`?days=30`) |
 | `GET` | `/api/stats/prediction` | Predicción de llegada al objetivo |
-| `GET` | `/api/weather` | Tiempo del día (caché 1h, requiere AEMET_API_KEY) |
+| `GET` | `/api/weather` | Tiempo del día según localidad del usuario (caché 1h) |
+| `GET` | `/api/weather/municipalities?q=` | Buscar municipios AEMET por nombre |
+
+### Admin
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/api/admin/users` | Listar todos los usuarios con estadísticas |
+| `POST` | `/api/admin/users` | Crear usuario |
+| `PATCH` | `/api/admin/users/:id` | Cambiar rol, email o nombre |
+| `DELETE` | `/api/admin/users/:id` | Eliminar usuario y sus datos |
+| `GET` | `/api/admin/config` | Leer configuración de la app |
+| `PATCH` | `/api/admin/config` | Actualizar configuración (ej: registro abierto) |
+| `GET` | `/api/admin/stats` | Estadísticas globales |
 
 ---
 
