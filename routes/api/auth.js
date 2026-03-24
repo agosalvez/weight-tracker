@@ -5,6 +5,7 @@ const jwt     = require('jsonwebtoken');
 const db      = require('../../db/database');
 const { requireAuth, JWT_SECRET } = require('../../middleware/auth');
 
+
 const {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -28,10 +29,14 @@ function cleanPending() {
 
 function makeToken(user) {
   return jwt.sign(
-    { id: user.id, username: user.username },
+    { id: user.id, username: user.username, role: user.role || 'user' },
     JWT_SECRET,
     { expiresIn: '30d' }
   );
+}
+
+function userPublic(user) {
+  return { id: user.id, username: user.username, displayName: user.display_name, role: user.role || 'user' };
 }
 
 function ensureSettings(userId) {
@@ -47,7 +52,7 @@ router.get('/status', (req, res) => {
 // POST /api/auth/register — crear primer usuario (o con ALLOW_REGISTRATION=true)
 router.post('/register', (req, res) => {
   try {
-    const { username, password, displayName } = req.body;
+    const { username, password, displayName, email } = req.body;
     if (!username || !password) {
       return res.status(400).json({ success: false, error: 'Usuario y contraseña obligatorios' });
     }
@@ -57,18 +62,17 @@ router.post('/register', (req, res) => {
       return res.status(403).json({ success: false, error: 'Registro cerrado' });
     }
 
-    const hash   = bcrypt.hashSync(password, 10);
+    // El primer usuario es admin automáticamente
+    const role = count === 0 ? 'admin' : 'user';
+    const hash = bcrypt.hashSync(password, 10);
     const result = db.prepare(
-      'INSERT INTO users (username, password_hash, display_name) VALUES (?, ?, ?)'
-    ).run(username, hash, displayName || username);
+      'INSERT INTO users (username, password_hash, display_name, email, role) VALUES (?, ?, ?, ?, ?)'
+    ).run(username, hash, displayName || username, email || null, role);
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
     ensureSettings(user.id);
 
-    res.json({
-      success: true,
-      data: { token: makeToken(user), user: { id: user.id, username: user.username, displayName: user.display_name } },
-    });
+    res.json({ success: true, data: { token: makeToken(user), user: userPublic(user) } });
   } catch (e) {
     if (e.message.includes('UNIQUE')) {
       return res.status(409).json({ success: false, error: 'El usuario ya existe' });
@@ -86,10 +90,46 @@ router.post('/login', (req, res) => {
       return res.status(401).json({ success: false, error: 'Usuario o contraseña incorrectos' });
     }
     ensureSettings(user.id);
+
+    const token = makeToken(user);
+    // Si debe cambiar contraseña, indicarlo pero dar token igualmente
     res.json({
       success: true,
-      data: { token: makeToken(user), user: { id: user.id, username: user.username, displayName: user.display_name } },
+      data: {
+        token,
+        user: userPublic(user),
+        forcePasswordChange: !!user.force_password_change,
+      },
     });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/auth/change-password — cambiar contraseña propia
+router.post('/change-password', requireAuth, (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'La contraseña debe tener al menos 6 caracteres' });
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+
+    // Si tiene contraseña previa, verificar la actual (salvo que sea cambio forzado)
+    if (user.password_hash && !user.force_password_change) {
+      if (!currentPassword || !bcrypt.compareSync(currentPassword, user.password_hash)) {
+        return res.status(401).json({ success: false, error: 'Contraseña actual incorrecta' });
+      }
+    }
+
+    const hash = bcrypt.hashSync(newPassword, 10);
+    db.prepare('UPDATE users SET password_hash = ?, force_password_change = 0 WHERE id = ?')
+      .run(hash, req.user.id);
+
+    // Devolver token actualizado
+    const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+    res.json({ success: true, data: { token: makeToken(updated), user: userPublic(updated) } });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -97,7 +137,7 @@ router.post('/login', (req, res) => {
 
 // GET /api/auth/me
 router.get('/me', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT id, username, display_name FROM users WHERE id = ?').get(req.user.id);
+  const user = db.prepare('SELECT id, username, display_name, role, email FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
   res.json({ success: true, data: user });
 });
@@ -237,10 +277,7 @@ router.post('/webauthn/login/verify', async (req, res) => {
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(dbCred.user_id);
     ensureSettings(user.id);
 
-    res.json({
-      success: true,
-      data: { token: makeToken(user), user: { id: user.id, username: user.username, displayName: user.display_name } },
-    });
+    res.json({ success: true, data: { token: makeToken(user), user: userPublic(user) } });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

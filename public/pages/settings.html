@@ -25,6 +25,72 @@
 
 <div class="page">
 
+  <!-- PANEL DE ADMINISTRACIÓN (solo admin) -->
+  <div id="adminPanel" style="display:none">
+    <div class="settings-section" style="border-color:var(--primary-100)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <p class="settings-section-title" style="margin-bottom:0;color:var(--primary)">Panel de administración</p>
+        <span style="font-size:0.7rem;font-weight:700;background:var(--primary);color:#fff;padding:3px 8px;border-radius:999px">ADMIN</span>
+      </div>
+
+      <!-- Stats globales -->
+      <div id="adminStats" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0"></div>
+
+      <!-- Crear usuario -->
+      <div id="createUserForm" style="display:none;background:var(--bg);border-radius:var(--radius-md);padding:14px;margin-bottom:14px;border:1px solid var(--border)">
+        <p style="font-size:0.85rem;font-weight:700;margin-bottom:12px">Nuevo usuario</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Usuario</label>
+            <input type="text" id="newUserUsername" class="form-input" placeholder="nombre_usuario" autocapitalize="none">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nombre visible</label>
+            <input type="text" id="newUserDisplay" class="form-input" placeholder="Nombre">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email (opcional)</label>
+            <input type="email" id="newUserEmail" class="form-input" placeholder="email@ejemplo.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contraseña temporal</label>
+            <input type="text" id="newUserPw" class="form-input" placeholder="Mín. 6 caracteres">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-primary btn-sm" id="createUserOk">Crear usuario</button>
+          <button class="btn btn-ghost btn-sm" id="createUserCancel">Cancelar</button>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-muted);margin-left:auto;cursor:pointer">
+            <input type="checkbox" id="newUserIsAdmin"> Admin
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <p style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted)">Usuarios registrados</p>
+        <button class="btn btn-ghost btn-sm" id="showCreateUserBtn" style="font-size:0.78rem">+ Crear usuario</button>
+      </div>
+
+      <!-- Lista de usuarios -->
+      <div style="display:none" id="legacyHeader"></div>
+      <div id="adminUserList"></div>
+
+      <!-- Modal reset password (inline) -->
+      <div id="resetPwModal" style="display:none;background:var(--bg);border-radius:var(--radius-md);padding:14px;margin-top:12px;border:1px solid var(--border)">
+        <p style="font-size:0.85rem;font-weight:700;margin-bottom:10px">Resetear contraseña de <span id="resetPwName"></span></p>
+        <div class="form-group">
+          <input type="password" id="resetPwInput" class="form-input" placeholder="Nueva contraseña (mín. 6 caracteres)">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" id="resetPwOk">Guardar</button>
+          <button class="btn btn-ghost btn-sm" id="resetPwCancel">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SEGURIDAD: FACE ID -->
   <div class="settings-section" id="passkeySection" style="display:none">
     <p class="settings-section-title">Face ID / Huella digital</p>
@@ -161,6 +227,168 @@
   if (user) {
     document.getElementById('headerUser').textContent = user.displayName || user.username;
   }
+
+  // ─── Panel de administración ─────────────────────────────────────────────────
+  if (user?.role === 'admin') {
+    document.getElementById('adminPanel').style.display = 'block';
+    loadAdminStats();
+    loadAdminUsers();
+  }
+
+  // Toggle formulario crear usuario
+  document.getElementById('showCreateUserBtn').addEventListener('click', () => {
+    const form = document.getElementById('createUserForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  });
+  document.getElementById('createUserCancel').addEventListener('click', () => {
+    document.getElementById('createUserForm').style.display = 'none';
+  });
+  document.getElementById('createUserOk').addEventListener('click', async () => {
+    const username    = document.getElementById('newUserUsername').value.trim();
+    const displayName = document.getElementById('newUserDisplay').value.trim();
+    const email       = document.getElementById('newUserEmail').value.trim();
+    const password    = document.getElementById('newUserPw').value;
+    const isAdmin     = document.getElementById('newUserIsAdmin').checked;
+
+    if (!username || !password) { showToast('Usuario y contraseña son obligatorios', 'error'); return; }
+    if (password.length < 6)    { showToast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
+
+    const btn = document.getElementById('createUserOk');
+    btn.disabled = true; btn.textContent = 'Creando…';
+
+    try {
+      await API._fetch('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({ username, displayName, email: email || null, password, role: isAdmin ? 'admin' : 'user' }),
+      });
+      showToast(`Usuario @${username} creado. Deberá cambiar su contraseña al entrar.`);
+      document.getElementById('createUserForm').style.display = 'none';
+      // Reset form
+      ['newUserUsername','newUserDisplay','newUserEmail','newUserPw'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('newUserIsAdmin').checked = false;
+      loadAdminStats();
+      loadAdminUsers();
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Crear usuario';
+    }
+  });
+
+  async function loadAdminStats() {
+    try {
+      const s = await API._fetch('/api/admin/stats');
+      document.getElementById('adminStats').innerHTML = [
+        { label: 'Usuarios', val: s.total_users },
+        { label: 'Registros totales', val: s.total_logs },
+        { label: 'Passkeys activas', val: s.total_passkeys },
+        { label: 'Registros (7d)', val: s.logs_last_7d },
+      ].map(({ label, val }) => `
+        <div style="background:var(--primary-50);border-radius:var(--radius-sm);padding:10px 12px;text-align:center">
+          <div style="font-size:1.3rem;font-weight:800;color:var(--primary)">${val}</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600">${label}</div>
+        </div>
+      `).join('');
+    } catch {}
+  }
+
+  async function loadAdminUsers() {
+    try {
+      const users = await API._fetch('/api/admin/users');
+      const me = Auth.getUser();
+      document.getElementById('adminUserList').innerHTML = users.map(u => `
+        <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;border:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-weight:700;font-size:0.9rem">${u.display_name || u.username}</span>
+                ${u.role === 'admin' ? '<span style="font-size:0.65rem;font-weight:700;background:var(--primary);color:#fff;padding:2px 6px;border-radius:999px">ADMIN</span>' : ''}
+                ${u.id === me.id ? '<span style="font-size:0.65rem;font-weight:700;background:var(--success);color:#fff;padding:2px 6px;border-radius:999px">TÚ</span>' : ''}
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-muted)">@${u.username}${u.email ? ' · ' + u.email : ''}</div>
+            </div>
+            <div style="font-size:0.72rem;color:var(--text-muted);text-align:right;flex-shrink:0">
+              <div>Desde ${fmtDate(u.created_at)}</div>
+              <div>Visto ${u.last_seen_at ? fmtDate(u.last_seen_at) : 'nunca'}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;font-size:0.75rem;color:var(--text-muted);margin-bottom:10px">
+            <span>📊 ${u.weight_logs} pesos</span>
+            <span>🍽️ ${u.kcal_logs} kcal</span>
+            <span>🔑 ${u.passkeys} passkeys</span>
+            ${u.last_log_date ? `<span>Último: ${u.last_log_date}</span>` : ''}
+          </div>
+          ${u.id !== me.id ? `
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button onclick="adminToggleRole(${u.id}, '${u.role}')" class="btn btn-ghost btn-sm" style="font-size:0.75rem">
+              ${u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}
+            </button>
+            <button onclick="adminResetPw(${u.id}, '${u.display_name || u.username}')" class="btn btn-ghost btn-sm" style="font-size:0.75rem">
+              Resetear contraseña
+            </button>
+            <button onclick="adminDeleteUser(${u.id}, '${u.display_name || u.username}')" class="btn btn-sm" style="font-size:0.75rem;background:var(--error-50);color:var(--error);border:none">
+              Eliminar
+            </button>
+          </div>
+          ` : ''}
+        </div>
+      `).join('');
+    } catch (e) {
+      showToast('Error cargando usuarios: ' + e.message, 'error');
+    }
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso.replace(' ', 'T'));
+    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  window.adminToggleRole = async (id, currentRole) => {
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    try {
+      await API._fetch(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ role: newRole }) });
+      showToast('Rol actualizado');
+      loadAdminUsers();
+    } catch (e) { showToast(e.message, 'error'); }
+  };
+
+  let resetTarget = null;
+  window.adminResetPw = (id, name) => {
+    resetTarget = id;
+    document.getElementById('resetPwName').textContent = name;
+    document.getElementById('resetPwInput').value = '';
+    document.getElementById('resetPwModal').style.display = 'block';
+  };
+  document.getElementById('resetPwCancel').addEventListener('click', () => {
+    document.getElementById('resetPwModal').style.display = 'none';
+    resetTarget = null;
+  });
+  document.getElementById('resetPwOk').addEventListener('click', async () => {
+    const pw = document.getElementById('resetPwInput').value;
+    if (!pw || pw.length < 6) { showToast('Mínimo 6 caracteres', 'error'); return; }
+    try {
+      await API._fetch(`/api/admin/users/${resetTarget}/reset-password`, { method: 'POST', body: JSON.stringify({ password: pw }) });
+      showToast('Contraseña actualizada');
+      document.getElementById('resetPwModal').style.display = 'none';
+      resetTarget = null;
+    } catch (e) { showToast(e.message, 'error'); }
+  });
+
+  window.adminDeleteUser = (id, name) => {
+    showConfirm(
+      `Eliminar usuario`,
+      `¿Eliminar a "${name}" y TODOS sus registros? Esta acción no se puede deshacer.`,
+      async () => {
+        try {
+          await API._fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+          showToast('Usuario eliminado');
+          loadAdminStats();
+          loadAdminUsers();
+        } catch (e) { showToast(e.message, 'error'); }
+      }
+    );
+  };
 
   // ─── Face ID / Passkey ──────────────────────────────────────────────────────
   let startRegistration;

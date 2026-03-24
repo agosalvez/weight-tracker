@@ -63,16 +63,17 @@ const API = {
   getPrediction:  ()     => API._fetch('/api/stats/prediction'),
 
   // Auth
-  authStatus:     ()          => fetch('/api/auth/status').then(r => r.json()),
-  login:          data        => API._fetch('/api/auth/login',   { method: 'POST', body: JSON.stringify(data) }),
-  register:       data        => API._fetch('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
-  getMe:          ()          => API._fetch('/api/auth/me'),
-  getPasskeys:    ()          => API._fetch('/api/auth/webauthn/credentials'),
-  deletePasskey:  id          => API._fetch(`/api/auth/webauthn/${id}`, { method: 'DELETE' }),
-  passkeyRegOpts: ()          => API._fetch('/api/auth/webauthn/register/options'),
-  passkeyRegVerify: data      => API._fetch('/api/auth/webauthn/register/verify', { method: 'POST', body: JSON.stringify(data) }),
-  passkeyLoginOpts: ()        => fetch('/api/auth/webauthn/login/options', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).then(r => r.json()),
-  passkeyLoginVerify: data    => fetch('/api/auth/webauthn/login/verify',  { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+  authStatus:       ()       => fetch('/api/auth/status').then(r => r.json()),
+  login:            data     => fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+  register:         data     => API._fetch('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  changePassword:   data     => API._fetch('/api/auth/change-password', { method: 'POST', body: JSON.stringify(data) }),
+  getMe:            ()       => API._fetch('/api/auth/me'),
+  getPasskeys:      ()       => API._fetch('/api/auth/webauthn/credentials'),
+  deletePasskey:    id       => API._fetch(`/api/auth/webauthn/${id}`, { method: 'DELETE' }),
+  passkeyRegOpts:   ()       => API._fetch('/api/auth/webauthn/register/options'),
+  passkeyRegVerify: data     => API._fetch('/api/auth/webauthn/register/verify', { method: 'POST', body: JSON.stringify(data) }),
+  passkeyLoginOpts: ()       => fetch('/api/auth/webauthn/login/options', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).then(r => r.json()),
+  passkeyLoginVerify: data   => fetch('/api/auth/webauthn/login/verify',  { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
 };
 
 // ─── Guard en páginas protegidas ─────────────────────────────────────────────

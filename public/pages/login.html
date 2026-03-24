@@ -154,6 +154,23 @@
       <button class="btn btn-primary btn-block" id="setupBtn">Crear cuenta</button>
     </div>
 
+    <!-- MODO CAMBIO DE CONTRASEÑA FORZADO -->
+    <div id="forceChangeMode" style="display:none">
+      <h2>Cambia tu contraseña</h2>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">
+        Por seguridad, debes establecer una contraseña propia antes de continuar.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Nueva contraseña</label>
+        <input type="password" id="newPw1" class="form-input" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmar contraseña</label>
+        <input type="password" id="newPw2" class="form-input" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary btn-block" id="forceChangeBtn">Guardar y entrar</button>
+    </div>
+
     <!-- MODO LOGIN -->
     <div id="loginMode" style="display:none">
       <h2>Bienvenido de nuevo</h2>
@@ -247,12 +264,43 @@
     btn.disabled = true; btn.textContent = 'Entrando…';
 
     try {
-      const data = await API.login({ username, password });
+      const res = await API.login({ username, password });
+      if (!res.success) throw new Error(res.error || 'Error de servidor');
+
+      Auth.save(res.data.token, res.data.user);
+
+      if (res.data.forcePasswordChange) {
+        // Mostrar pantalla de cambio obligatorio de contraseña
+        document.getElementById('loginMode').style.display = 'none';
+        document.getElementById('forceChangeMode').style.display = 'block';
+      } else {
+        window.location.href = '/';
+      }
+    } catch (e) {
+      showToast(e.message, 'error');
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  });
+
+  // ─── Cambio forzado de contraseña ───────────────────────────────────────────
+
+  document.getElementById('forceChangeBtn')?.addEventListener('click', async () => {
+    const pw1 = document.getElementById('newPw1').value;
+    const pw2 = document.getElementById('newPw2').value;
+
+    if (!pw1 || pw1.length < 6) { showToast('Mínimo 6 caracteres', 'error'); return; }
+    if (pw1 !== pw2) { showToast('Las contraseñas no coinciden', 'error'); return; }
+
+    const btn = document.getElementById('forceChangeBtn');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+
+    try {
+      const data = await API.changePassword({ newPassword: pw1 });
       Auth.save(data.token, data.user);
       window.location.href = '/';
     } catch (e) {
       showToast(e.message, 'error');
-      btn.disabled = false; btn.textContent = 'Entrar';
+      btn.disabled = false; btn.textContent = 'Guardar y entrar';
     }
   });
 

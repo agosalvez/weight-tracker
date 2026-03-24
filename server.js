@@ -39,6 +39,7 @@ app.use('/api/settings', require('./routes/api/settings'));
 app.use('/api/stats',    require('./routes/api/stats'));
 app.use('/api/weather',  require('./routes/api/weather'));
 app.use('/api/auth',     require('./routes/api/auth'));
+app.use('/api/admin',    require('./routes/api/admin'));
 
 // Page routes
 const pages = path.join(__dirname, 'public', 'pages');

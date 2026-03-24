@@ -120,4 +120,29 @@ if (!usersExists) {
   console.log('[db] Migración multi-usuario completada');
 }
 
+// ── Paso 3: añadir role y email a users (migración incremental) ───────────────
+const userCols = db.pragma('table_info(users)').map(c => c.name);
+
+if (!userCols.includes('role')) {
+  db.exec(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'`);
+  // El primer usuario (id más bajo) es admin
+  db.exec(`UPDATE users SET role = 'admin' WHERE id = (SELECT MIN(id) FROM users)`);
+  console.log('[db] Columna role añadida; primer usuario promovido a admin');
+}
+
+if (!userCols.includes('email')) {
+  db.exec(`ALTER TABLE users ADD COLUMN email TEXT`);
+  console.log('[db] Columna email añadida');
+}
+
+if (!userCols.includes('last_seen_at')) {
+  db.exec(`ALTER TABLE users ADD COLUMN last_seen_at TEXT`);
+  console.log('[db] Columna last_seen_at añadida');
+}
+
+if (!userCols.includes('force_password_change')) {
+  db.exec(`ALTER TABLE users ADD COLUMN force_password_change INTEGER NOT NULL DEFAULT 0`);
+  console.log('[db] Columna force_password_change añadida');
+}
+
 module.exports = db;
