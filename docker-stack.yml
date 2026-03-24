@@ -1,29 +1,26 @@
-version: '3.8'
+version: '3.3'
 
 services:
   weight-tracker:
     image: magicadry/weight-tracker:latest
+    restart: unless-stopped
     networks:
       - traefik
     volumes:
       - weight_data:/app/data
     environment:
       - PORT=3000
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.middlewares.middleware-secure.redirectscheme.scheme=https"
-        - "traefik.http.routers.weight-tracker.entrypoints=web"
-        - "traefik.http.routers.weight-tracker.middlewares=middleware-secure"
-        - "traefik.http.routers.weight-tracker.rule=Host(`weight-tracker.gosalvez.es`)"
-        - "traefik.http.routers.weight-tracker-secure.tls=true"
-        - "traefik.http.routers.weight-tracker-secure.tls.certresolver=myresolver"
-        - "traefik.http.routers.weight-tracker-secure.entrypoints=websecure"
-        - "traefik.http.routers.weight-tracker-secure.rule=Host(`weight-tracker.gosalvez.es`)"
-        - "traefik.http.services.weight-tracker-secure.loadbalancer.server.port=3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.middleware-secure.redirectscheme.scheme=https"
+      - "traefik.http.routers.weight-tracker.entrypoints=web"
+      - "traefik.http.routers.weight-tracker.middlewares=middleware-secure"
+      - "traefik.http.routers.weight-tracker.rule=Host(`weight-tracker.gosalvez.es`)"
+      - "traefik.http.routers.weight-tracker-secure.tls=true"
+      - "traefik.http.routers.weight-tracker-secure.tls.certresolver=myresolver"
+      - "traefik.http.routers.weight-tracker-secure.entrypoints=websecure"
+      - "traefik.http.routers.weight-tracker-secure.rule=Host(`weight-tracker.gosalvez.es`)"
+      - "traefik.http.services.weight-tracker-secure.loadbalancer.server.port=3000"
 
 networks:
   traefik:
