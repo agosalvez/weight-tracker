@@ -101,7 +101,7 @@ Requiere HTTPS en producción (ya incluido si usas Traefik).
 
 ### Múltiples usuarios
 
-Cada usuario tiene sus propios registros, ajustes y estadísticas completamente separados. Para permitir el registro de nuevos usuarios añade `ALLOW_REGISTRATION=true` a las variables de entorno, crea el nuevo usuario, y vuelve a ponerlo a `false`.
+Cada usuario tiene sus propios registros, ajustes y estadísticas completamente separados. El administrador puede gestionar usuarios desde **Ajustes → Panel de administración**: crear cuentas, cambiar roles y activar/desactivar el registro público con un toggle.
 
 ---
 
@@ -114,7 +114,6 @@ Cada usuario tiene sus propios registros, ajustes y estadísticas completamente 
 | `RP_ID` | `localhost` | Dominio para WebAuthn (sin protocolo). En prod: `tu-dominio.com` |
 | `ORIGIN` | `http://localhost:3000` | URL completa del origen. En prod: `https://tu-dominio.com` |
 | `AEMET_API_KEY` | — | API key de [AEMET OpenData](https://opendata.aemet.es) para el widget del tiempo |
-| `ALLOW_REGISTRATION` | `false` | Permite registrar nuevos usuarios (`true`/`false`) |
 
 ---
 

@@ -36,6 +36,20 @@
       <!-- Stats globales -->
       <div id="adminStats" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0"></div>
 
+      <!-- Configuración -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:14px;border:1px solid var(--border)">
+        <div>
+          <div style="font-size:0.87rem;font-weight:700">Registro abierto</div>
+          <div style="font-size:0.75rem;color:var(--text-muted)">Permite que nuevos usuarios se registren desde la pantalla de login</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;margin-left:12px">
+          <input type="checkbox" id="allowRegToggle" style="opacity:0;width:0;height:0" onchange="toggleAllowReg(this.checked)">
+          <span id="allowRegSlider" style="position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:999px;transition:0.2s">
+            <span style="position:absolute;content:'';height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:0.2s;display:block" id="allowRegThumb"></span>
+          </span>
+        </label>
+      </div>
+
       <!-- Crear usuario -->
       <div id="createUserForm" style="display:none;background:var(--bg);border-radius:var(--radius-md);padding:14px;margin-bottom:14px;border:1px solid var(--border)">
         <p style="font-size:0.85rem;font-weight:700;margin-bottom:12px">Nuevo usuario</p>
@@ -233,7 +247,41 @@
     document.getElementById('adminPanel').style.display = 'block';
     loadAdminStats();
     loadAdminUsers();
+    loadAdminConfig();
   }
+
+  // ─── Toggle registro abierto ─────────────────────────────────────────────────
+  async function loadAdminConfig() {
+    try {
+      const cfg = await API._fetch('/api/admin/config');
+      const on  = cfg.allow_registration === '1';
+      document.getElementById('allowRegToggle').checked = on;
+      updateToggleStyle(on);
+    } catch {}
+  }
+
+  function updateToggleStyle(on) {
+    const slider = document.getElementById('allowRegSlider');
+    const thumb  = document.getElementById('allowRegThumb');
+    slider.style.background = on ? 'var(--primary)' : 'var(--border)';
+    thumb.style.transform   = on ? 'translateX(20px)' : 'translateX(0)';
+  }
+
+  window.toggleAllowReg = async (checked) => {
+    try {
+      updateToggleStyle(checked);
+      await API._fetch('/api/admin/config', {
+        method: 'PATCH',
+        body: JSON.stringify({ allow_registration: checked ? '1' : '0' }),
+      });
+      showToast(checked ? 'Registro abierto' : 'Registro cerrado');
+    } catch (e) {
+      showToast(e.message, 'error');
+      // Revertir
+      document.getElementById('allowRegToggle').checked = !checked;
+      updateToggleStyle(!checked);
+    }
+  };
 
   // Toggle formulario crear usuario
   document.getElementById('showCreateUserBtn').addEventListener('click', () => {

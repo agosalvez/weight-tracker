@@ -120,6 +120,32 @@ router.post('/users', (req, res) => {
   }
 });
 
+// ─── GET /api/admin/config — leer configuración de la app ────────────────────
+router.get('/config', (req, res) => {
+  try {
+    const rows = db.prepare('SELECT key, value FROM app_config').all();
+    const config = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    res.json({ success: true, data: config });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ─── PATCH /api/admin/config — actualizar una clave de configuración ──────────
+router.patch('/config', (req, res) => {
+  try {
+    const allowed = ['allow_registration'];
+    for (const [key, value] of Object.entries(req.body)) {
+      if (!allowed.includes(key)) continue;
+      db.prepare('INSERT OR REPLACE INTO app_config (key, value) VALUES (?, ?)').run(key, String(value));
+    }
+    const rows = db.prepare('SELECT key, value FROM app_config').all();
+    res.json({ success: true, data: Object.fromEntries(rows.map(r => [r.key, r.value])) });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // ─── GET /api/admin/stats — estadísticas globales de la app ──────────────────
 router.get('/stats', (req, res) => {
   try {

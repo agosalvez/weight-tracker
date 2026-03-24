@@ -130,7 +130,7 @@
     <div class="login-subtitle">Tu seguimiento personal de progreso</div>
   </div>
 
-  <div class="login-card">
+  <div class="login-card" id="loginCard">
     <!-- MODO SETUP (primer usuario) -->
     <div id="setupMode" style="display:none">
       <h2>Crear tu cuenta</h2>
@@ -217,15 +217,41 @@
 
   const { data: status } = await fetch('/api/auth/status').then(r => r.json());
 
-  if (status.needsSetup) {
-    document.getElementById('setupMode').style.display = 'block';
+  if (status.needsSetup || status.allowRegistration) {
+    // Mostrar tabs login / registro
+    document.getElementById('loginMode').style.display = 'block';
+    if (startAuthentication && window.PublicKeyCredential) {
+      document.getElementById('passkeyBtn').style.display = 'flex';
+    }
+    if (status.allowRegistration && !status.needsSetup) {
+      // Añadir tab de registro
+      document.getElementById('loginCard').insertAdjacentHTML('afterbegin', `
+        <div style="display:flex;gap:0;margin-bottom:20px;background:var(--bg);border-radius:var(--radius-sm);padding:3px">
+          <button id="tabLogin" onclick="switchTab('login')" style="flex:1;padding:8px;border:none;border-radius:var(--radius-xs);font-weight:700;font-size:0.88rem;cursor:pointer;background:var(--card);color:var(--primary)">Entrar</button>
+          <button id="tabRegister" onclick="switchTab('register')" style="flex:1;padding:8px;border:none;border-radius:var(--radius-xs);font-weight:700;font-size:0.88rem;cursor:pointer;background:transparent;color:var(--text-muted)">Registrarse</button>
+        </div>
+      `);
+      document.getElementById('setupMode').style.display = 'none';
+    } else if (status.needsSetup) {
+      document.getElementById('loginMode').style.display = 'none';
+      document.getElementById('setupMode').style.display = 'block';
+    }
   } else {
     document.getElementById('loginMode').style.display = 'block';
-    // Mostrar botón Face ID si el navegador soporta WebAuthn
     if (startAuthentication && window.PublicKeyCredential) {
       document.getElementById('passkeyBtn').style.display = 'flex';
     }
   }
+
+  window.switchTab = (tab) => {
+    const isLogin = tab === 'login';
+    document.getElementById('loginMode').style.display  = isLogin ? 'block' : 'none';
+    document.getElementById('setupMode').style.display  = isLogin ? 'none'  : 'block';
+    document.getElementById('tabLogin').style.background    = isLogin ? 'var(--card)' : 'transparent';
+    document.getElementById('tabLogin').style.color         = isLogin ? 'var(--primary)' : 'var(--text-muted)';
+    document.getElementById('tabRegister').style.background = isLogin ? 'transparent' : 'var(--card)';
+    document.getElementById('tabRegister').style.color      = isLogin ? 'var(--text-muted)' : 'var(--primary)';
+  };
 
   // ─── Setup (primer usuario) ─────────────────────────────────────────────────
 

@@ -43,10 +43,15 @@ function ensureSettings(userId) {
   db.prepare('INSERT OR IGNORE INTO settings (user_id) VALUES (?)').run(userId);
 }
 
+function isRegistrationOpen() {
+  const row = db.prepare("SELECT value FROM app_config WHERE key = 'allow_registration'").get();
+  return row?.value === '1';
+}
+
 // GET /api/auth/status — ¿hay usuarios? ¿hace falta setup?
 router.get('/status', (req, res) => {
   const count = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
-  res.json({ success: true, data: { needsSetup: count === 0 } });
+  res.json({ success: true, data: { needsSetup: count === 0, allowRegistration: isRegistrationOpen() } });
 });
 
 // POST /api/auth/register — crear primer usuario (o con ALLOW_REGISTRATION=true)
@@ -58,7 +63,7 @@ router.post('/register', (req, res) => {
     }
 
     const count = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
-    if (count > 0 && process.env.ALLOW_REGISTRATION !== 'true') {
+    if (count > 0 && !isRegistrationOpen()) {
       return res.status(403).json({ success: false, error: 'Registro cerrado' });
     }
 

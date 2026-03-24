@@ -145,4 +145,13 @@ if (!userCols.includes('force_password_change')) {
   console.log('[db] Columna force_password_change añadida');
 }
 
+// ── Tabla de configuración de la app ──────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS app_config (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+  INSERT OR IGNORE INTO app_config (key, value) VALUES ('allow_registration', '0');
+`);
+
 module.exports = db;
