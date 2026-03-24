@@ -4,7 +4,7 @@ services:
   weight-tracker:
     image: magicadry/weight-tracker:latest
     networks:
-      - traefik-public
+      - traefik
     volumes:
       - weight_data:/app/data
     environment:
@@ -26,7 +26,7 @@ services:
         - "traefik.http.services.weight-tracker-secure.loadbalancer.server.port=3000"
 
 networks:
-  traefik-public:
+  traefik:
     external: true
 
 volumes:
