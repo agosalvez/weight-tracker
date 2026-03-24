@@ -7,6 +7,9 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Health check
+app.get('/api/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
+
 // API routes
 app.use('/api/logs',     require('./routes/api/logs'));
 app.use('/api/settings', require('./routes/api/settings'));
