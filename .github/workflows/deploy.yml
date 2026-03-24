@@ -26,3 +26,6 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/weight-tracker:latest
             ${{ secrets.DOCKER_USERNAME }}/weight-tracker:${{ github.sha }}
+
+      - name: Deploy en Portainer
+        run: curl -s -X POST ${{ secrets.PORTAINER_WEBHOOK }}
