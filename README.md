@@ -159,6 +159,48 @@ weight-tracker/
 
 ---
 
+## Contribuir
+
+Las contribuciones son bienvenidas. Sigue estas buenas prácticas:
+
+### Commits
+
+Usa [Conventional Commits](https://www.conventionalcommits.org):
+
+```
+feat: añadir exportación de datos a CSV
+fix: corregir cálculo de déficit cuando no hay TDEE
+chore: actualizar dependencias
+docs: mejorar README
+style: ajustar padding en mobile
+refactor: extraer lógica de predicción a utils
+```
+
+### Pull Requests
+
+1. Haz fork del repositorio
+2. Crea una rama descriptiva:
+   ```bash
+   git checkout -b feat/exportar-csv
+   ```
+3. Haz commits pequeños y atómicos (una cosa por commit)
+4. Asegúrate de que el servidor arranca sin errores antes de abrir el PR
+5. Describe qué hace el PR y por qué en la descripción
+6. Abre el PR contra `main`
+
+### Lo que se agradece
+
+- Mejoras de UX/UI mobile
+- Nuevas métricas o visualizaciones
+- Soporte para múltiples usuarios
+- Tests
+
+---
+
 ## Licencia
 
 MIT — úsalo, modifícalo, despliégalo. Sin restricciones.
+
+---
+
+Hecho con café y obsesión por los datos — [Adrián Gosálvez](https://github.com/agosalvez)
