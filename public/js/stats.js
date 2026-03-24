@@ -43,6 +43,7 @@ async function loadSummary() {
     setKpi('kpiAvgKcal', s.avg_kcal_7d != null ? s.avg_kcal_7d + ' kcal' : '—');
     setKpi('kpiDeficit', s.avg_deficit_7d != null ? s.avg_deficit_7d + ' kcal' : '—');
     setKpi('kpiTarget', s.target_weight != null ? s.target_weight.toFixed(1) + ' kg' : '—');
+    renderBMI(s.bmi);
     setKpi('kpiDiffTarget', s.diff_to_target != null ? formatChange(-s.diff_to_target, ' kg') : '—');
 
     // Color del cambio semanal
@@ -285,6 +286,22 @@ function chartOptions(minY, maxY, tickCb) {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function renderBMI(bmi) {
+  if (!bmi) return;
+
+  document.getElementById('bmiCard').style.display = 'block';
+  document.getElementById('bmiValue').textContent = bmi.value;
+
+  const badge = document.getElementById('bmiBadge');
+  badge.textContent = bmi.category;
+  badge.className = `trend-badge ${bmi.color}`;
+
+  // Posición del marcador: escala de 16 a 40
+  const min = 16, max = 40;
+  const pct = Math.min(Math.max((bmi.value - min) / (max - min) * 100, 2), 98);
+  document.getElementById('bmiMarker').style.left = pct + '%';
+}
 
 function shortDate(dateStr) {
   const [, m, d] = dateStr.split('-');

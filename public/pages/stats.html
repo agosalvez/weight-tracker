@@ -55,6 +55,32 @@
     <div class="pred-sub" id="predSub"></div>
   </div>
 
+  <!-- IMC -->
+  <div class="card" id="bmiCard" style="margin-bottom:14px;display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:4px">IMC</div>
+        <div style="font-size:2rem;font-weight:800;line-height:1" id="bmiValue">—</div>
+      </div>
+      <span id="bmiBadge" class="trend-badge neutral" style="font-size:0.85rem"></span>
+    </div>
+
+    <!-- Barra IMC -->
+    <div style="position:relative;height:10px;border-radius:999px;background:linear-gradient(to right,#60a5fa 0%,#34d399 20%,#34d399 46%,#fbbf24 46%,#fbbf24 65%,#f87171 65%,#f87171 83%,#dc2626 83%);margin-bottom:6px;overflow:visible">
+      <div id="bmiMarker" style="position:absolute;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:white;border:3px solid #0f172a;border-radius:50%;transition:left 0.4s ease"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--text-muted);font-weight:600;margin-bottom:12px">
+      <span>16</span><span>18.5</span><span>25</span><span>30</span><span>35</span><span>40</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:0.7rem;text-align:center">
+      <div style="background:#eff6ff;border-radius:6px;padding:6px 4px"><div style="font-weight:700;color:#3b82f6">&lt; 18.5</div><div style="color:var(--text-muted)">Bajo peso</div></div>
+      <div style="background:var(--success-50);border-radius:6px;padding:6px 4px"><div style="font-weight:700;color:var(--success)">18.5–24.9</div><div style="color:var(--text-muted)">Normal</div></div>
+      <div style="background:var(--warning-50);border-radius:6px;padding:6px 4px"><div style="font-weight:700;color:var(--warning)">25–29.9</div><div style="color:var(--text-muted)">Sobrepeso</div></div>
+      <div style="background:var(--error-50);border-radius:6px;padding:6px 4px"><div style="font-weight:700;color:var(--error)">≥ 30</div><div style="color:var(--text-muted)">Obesidad</div></div>
+    </div>
+  </div>
+
   <!-- TENDENCIA BADGE + INFO -->
   <div style="margin-bottom:14px">
     <span class="trend-badge neutral" id="trendBadge">Calculando tendencia…</span>

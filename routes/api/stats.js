@@ -3,6 +3,19 @@ const router = express.Router();
 const db = require('../../db/database');
 const { movingAverage, predictGoalDate, assessPace } = require('../../utils/calculations');
 
+function calcBMI(weight, height_cm) {
+  if (!weight || !height_cm) return null;
+  const h = height_cm / 100;
+  const bmi = parseFloat((weight / (h * h)).toFixed(1));
+  let category, color;
+  if      (bmi < 18.5) { category = 'Bajo peso';       color = 'warning'; }
+  else if (bmi < 25)   { category = 'Peso normal';      color = 'good';    }
+  else if (bmi < 30)   { category = 'Sobrepeso';        color = 'warning'; }
+  else if (bmi < 35)   { category = 'Obesidad grado I'; color = 'bad';     }
+  else                 { category = 'Obesidad grado II'; color = 'bad';    }
+  return { value: bmi, category, color };
+}
+
 // GET /api/stats/summary
 router.get('/summary', (req, res) => {
   try {
@@ -38,7 +51,8 @@ router.get('/summary', (req, res) => {
         target_weight:  target || null,
         diff_to_target: diffToTarget,
         tdee:           tdee ? Math.round(tdee) : null,
-        total_logs:     db.prepare('SELECT COUNT(*) as c FROM daily_logs WHERE weight_kg IS NOT NULL').get().c
+        total_logs:     db.prepare('SELECT COUNT(*) as c FROM daily_logs WHERE weight_kg IS NOT NULL').get().c,
+        bmi:            calcBMI(currentWeight, settings?.height_cm)
       }
     });
   } catch (e) {
