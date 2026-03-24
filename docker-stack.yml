@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  weight-tracker:
+    image: magicadry/weight-tracker:latest
+    networks:
+      - traefik-public
+    volumes:
+      - weight_data:/app/data
+    environment:
+      - PORT=3000
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.weight-tracker.rule=Host(`weight.TUDOMINIO.com`)
+        - traefik.http.routers.weight-tracker.entrypoints=websecure
+        - traefik.http.routers.weight-tracker.tls.certresolver=letsencrypt
+        - traefik.http.services.weight-tracker.loadbalancer.server.port=3000
+
+networks:
+  traefik-public:
+    external: true
+
+volumes:
+  weight_data:
+    driver: local
