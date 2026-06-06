@@ -223,6 +223,19 @@
     <button class="btn btn-secondary btn-block" style="margin-top:14px" id="changePwBtn">Cambiar contraseña</button>
   </div>
 
+  <!-- MIS ALIMENTOS (WT3.0) -->
+  <div class="settings-section" id="myFoodsSection" style="margin-top:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <p class="settings-section-title" style="margin-bottom:0">Mis alimentos</p>
+      <span id="myFoodsCount" style="font-size:0.72rem;color:var(--text-muted)"></span>
+    </div>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px">
+      Caché de alimentos que has registrado. Se usan al añadir comidas en la pantalla principal.
+    </p>
+    <input type="text" id="myFoodsFilter" class="form-input" placeholder="Filtrar por nombre…" style="margin-bottom:10px">
+    <div id="myFoodsList"></div>
+  </div>
+
   <!-- ZONA PELIGRO -->
   <div class="settings-section" style="margin-top:24px;border:1px solid #fecaca;">
     <p class="settings-section-title" style="color:var(--error)">Zona de peligro</p>
@@ -231,6 +244,8 @@
     </p>
     <button class="btn btn-danger btn-block" onclick="confirmDeleteAll()">Borrar todos los registros</button>
   </div>
+
+  <div class="app-version" id="appVersionFooter">Weight Tracker</div>
 
 </div>
 
@@ -571,5 +586,6 @@
     );
   };
 </script>
+<script src="/js/settings-foods.js"></script>
 </body>
 </html>

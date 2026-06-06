@@ -5,7 +5,8 @@ const fs = require('fs');
 const dataDir = path.join(__dirname, '..', 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-const db = new Database(path.join(dataDir, 'tracker.db'));
+const dbPath = process.env.DB_PATH || path.join(dataDir, 'tracker.db');
+const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
@@ -161,5 +162,53 @@ db.exec(`
   );
   INSERT OR IGNORE INTO app_config (key, value) VALUES ('allow_registration', '0');
 `);
+
+// ── Paso 5: caché personal de alimentos y desglose por comidas (WT3.0) ────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS foods (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    brand           TEXT,
+    barcode         TEXT,
+    kcal_per_100g   REAL NOT NULL,
+    protein_g       REAL,
+    carbs_g         REAL,
+    fat_g           REAL,
+    source          TEXT NOT NULL DEFAULT 'manual',
+    confidence      INTEGER NOT NULL DEFAULT 100,
+    times_used      INTEGER NOT NULL DEFAULT 0,
+    created_at      TEXT DEFAULT (datetime('now')),
+    updated_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(user_id, name, brand)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_foods_user_name ON foods(user_id, name);
+  CREATE INDEX IF NOT EXISTS idx_foods_user_barcode ON foods(user_id, barcode);
+
+  CREATE TABLE IF NOT EXISTS meal_entries (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id             INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date                TEXT NOT NULL,
+    meal_type           TEXT NOT NULL,
+    food_id             INTEGER REFERENCES foods(id) ON DELETE SET NULL,
+    food_name_snapshot  TEXT NOT NULL,
+    grams               REAL,
+    units               REAL,
+    unit_label          TEXT,
+    kcal                REAL NOT NULL,
+    created_at          TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_meals_user_date ON meal_entries(user_id, date);
+  CREATE INDEX IF NOT EXISTS idx_meals_user_date_type ON meal_entries(user_id, date, meal_type);
+`);
+
+// ── Paso 6: columna calories_source en daily_logs (manual | from_meals) ────────
+const logCols = db.pragma('table_info(daily_logs)').map(c => c.name);
+if (!logCols.includes('calories_source')) {
+  db.exec(`ALTER TABLE daily_logs ADD COLUMN calories_source TEXT NOT NULL DEFAULT 'manual'`);
+  console.log('[db] Columna calories_source añadida a daily_logs');
+}
 
 module.exports = db;

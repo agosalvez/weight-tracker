@@ -62,6 +62,22 @@ const API = {
   getCalTrend:    days   => API._fetch(`/api/stats/calories-trend?days=${days || 30}`),
   getPrediction:  ()     => API._fetch('/api/stats/prediction'),
 
+  // Foods (caché personal de alimentos)
+  getFoods:       ()     => API._fetch('/api/foods'),
+  searchFoods:    q      => API._fetch('/api/foods/search?q=' + encodeURIComponent(q)),
+  createFood:     data   => API._fetch('/api/foods', { method: 'POST', body: JSON.stringify(data) }),
+  updateFood:     (id,d) => API._fetch(`/api/foods/${id}`, { method: 'PATCH', body: JSON.stringify(d) }),
+  deleteFood:     id     => API._fetch(`/api/foods/${id}`, { method: 'DELETE' }),
+
+  // Meals (desglose por comidas)
+  getMeals:       date   => API._fetch(`/api/meals/${date}`),
+  addMealEntry:   data   => API._fetch('/api/meals', { method: 'POST', body: JSON.stringify(data) }),
+  deleteMealEntry: id    => API._fetch(`/api/meals/${id}`, { method: 'DELETE' }),
+  useFromMeals:   date   => API._fetch(`/api/meals/${date}/use-from-meals`, { method: 'POST' }),
+
+  // Versión de la app
+  getVersion:     ()     => fetch('/api/version').then(r => r.json()).then(j => j.data),
+
   // Auth
   authStatus:       ()       => fetch('/api/auth/status').then(r => r.json()),
   login:            data     => fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),

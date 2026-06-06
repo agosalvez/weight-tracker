@@ -839,3 +839,212 @@ input[type=number] { -moz-appearance: textfield; }
   flex-direction: column;
   gap: 1px;
 }
+
+/* ── Meals: desglose por comidas (WT3.0) ───────────────────────────────────── */
+
+.meals-section { margin-top: 14px; }
+
+.meal-block {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.meal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--primary-50);
+  border-bottom: 1px solid var(--primary-100);
+}
+
+.meal-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.meal-total {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: white;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.meal-body { padding: 4px 0; }
+
+.meal-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.meal-entry:last-child { border-bottom: none; }
+
+.meal-entry-info { flex: 1; min-width: 0; }
+.meal-entry-name {
+  font-size: 0.93rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meal-entry-amt {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.meal-entry-kcal {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.meal-entry-del {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-light);
+  padding: 4px 6px;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.meal-entry-del:hover { color: var(--error); }
+
+.meal-empty {
+  padding: 14px 16px;
+  font-size: 0.8rem;
+  color: var(--text-light);
+  font-style: italic;
+}
+
+.meal-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-top: 1px dashed var(--border);
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.meal-add-btn:hover { background: var(--primary-50); }
+
+/* ── Bottom sheet modal (añadir alimento) ──────────────────────────────────── */
+
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+}
+.sheet-overlay.open { display: flex; }
+
+.sheet {
+  width: 100%;
+  max-width: 520px;
+  background: var(--card);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 20px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+  max-height: 88vh;
+  overflow-y: auto;
+  animation: sheet-up 0.22s ease-out;
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sheet-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.sheet-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+
+.food-search-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.food-results { margin-bottom: 14px; }
+
+.food-result-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.food-result-item:hover { background: var(--primary-50); }
+.food-result-item .name { font-weight: 600; font-size: 0.92rem; }
+.food-result-item .brand { font-size: 0.75rem; color: var(--text-muted); }
+.food-result-item .kcal { font-size: 0.78rem; color: var(--text-muted); }
+
+.food-empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+
+.sheet-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 12px 0 8px;
+}
+
+/* ── Versión footer ────────────────────────────────────────────────────────── */
+.app-version {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-light);
+  padding: 16px 0 8px;
+  letter-spacing: 0.04em;
+}

@@ -40,6 +40,13 @@ app.use('/api/stats',    require('./routes/api/stats'));
 app.use('/api/weather',  require('./routes/api/weather'));
 app.use('/api/auth',     require('./routes/api/auth'));
 app.use('/api/admin',    require('./routes/api/admin'));
+app.use('/api/foods',    require('./routes/api/foods'));
+app.use('/api/meals',    require('./routes/api/meals'));
+
+// Versión de la app (expuesta sin autenticación para el footer)
+const APP_VERSION = require('./package.json').version;
+const APP_LABEL   = 'WT' + APP_VERSION.split('.').slice(0, 2).join('.');
+app.get('/api/version', (req, res) => res.json({ success: true, data: { version: APP_VERSION, label: APP_LABEL } }));
 
 // Page routes
 const pages = path.join(__dirname, 'public', 'pages');
@@ -58,7 +65,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`[boot] Servidor escuchando en puerto ${PORT}`);
   console.log(`[boot] Rutas cargadas: /, /history, /stats, /settings`);
-  console.log(`[boot] API cargada: /api/logs, /api/settings, /api/stats`);
+  console.log(`[boot] API cargada: /api/logs, /api/settings, /api/stats, /api/foods, /api/meals`);
   console.log(`[boot] Health check disponible en /api/health`);
-  console.log(`[boot] Weight Tracker listo`);
+  console.log(`[boot] Weight Tracker ${APP_LABEL} listo`);
 });

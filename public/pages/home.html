@@ -116,6 +116,13 @@
     </div>
   </div>
 
+  <!-- DESGLOSE POR COMIDAS (WT3.0) -->
+  <div class="section-header mt-8">
+    <span class="section-title">Desglose por comidas</span>
+    <button id="mealsModeToggle" class="btn btn-ghost btn-sm" title="Calcular total del día desde el desglose" style="font-size:0.72rem;display:none">Usar para el total</button>
+  </div>
+  <div class="meals-section" id="mealsSection"></div>
+
   <!-- QUICK STATS -->
   <div class="section-header mt-8">
     <span class="section-title">Resumen reciente</span>
@@ -136,6 +143,8 @@
       <div class="stat-label">Cambio semanal</div>
     </div>
   </div>
+
+  <div class="app-version">WT3.0</div>
 
 </div>
 
@@ -159,8 +168,58 @@
   </a>
 </nav>
 
+<!-- MODAL: añadir alimento a una comida -->
+<div class="sheet-overlay" id="addFoodSheet">
+  <div class="sheet">
+    <div class="sheet-header">
+      <div class="sheet-title" id="addFoodTitle">Añadir alimento</div>
+      <button class="sheet-close" id="addFoodCloseBtn" aria-label="Cerrar">×</button>
+    </div>
+
+    <input type="text" id="foodSearchInput" class="food-search-input" placeholder="Buscar en tus alimentos…" autocomplete="off">
+    <div class="food-results" id="foodResults"></div>
+
+    <div id="selectedFoodPanel" style="display:none">
+      <div class="sheet-section-title">Cantidad</div>
+      <div class="card card-sm" id="selectedFoodCard" style="margin-bottom:10px"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Gramos</label>
+          <input type="number" id="entryGrams" class="form-input" placeholder="80" inputmode="numeric" min="0" max="5000" step="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kcal estimadas</label>
+          <input type="text" id="entryKcalPreview" class="form-input" readonly style="background:var(--bg)">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="confirmAddEntryBtn">Añadir</button>
+    </div>
+
+    <div id="createFoodPanel" style="display:none">
+      <div class="sheet-section-title">Crear alimento nuevo</div>
+      <div class="form-group">
+        <label class="form-label">Nombre</label>
+        <input type="text" id="newFoodName" class="form-input" placeholder="Ej: Jamón york">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Marca (opcional)</label>
+          <input type="text" id="newFoodBrand" class="form-input" placeholder="Ej: El Pozo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kcal por 100g</label>
+          <input type="number" id="newFoodKcal" class="form-input" placeholder="110" inputmode="numeric" min="0" max="1000">
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-block" id="createFoodBtn">Guardar alimento</button>
+      <button class="btn btn-ghost btn-block mt-8" id="cancelCreateFoodBtn">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script src="/js/app.js"></script>
 <script src="/js/home.js"></script>
+<script src="/js/meals.js"></script>
 <script>
   // Soporte para abrir con ?date=YYYY-MM-DD desde historial
   const urlDate = new URLSearchParams(location.search).get('date');

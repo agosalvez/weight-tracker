@@ -1,4 +1,4 @@
-# Weight Tracker
+# Weight Tracker — WT3.0
 
 > Registra tu peso, calorías y evolución — desde el móvil, en segundos.
 
@@ -13,6 +13,8 @@ Una web app **mobile-first** pensada para que abrir, registrar y cerrar te lleve
 
 ## ¿Qué hace?
 
+- **Desglose por comidas con caché personal de alimentos** (nuevo en WT3.0): registra cada comida del día (desayuno / almuerzo / comida / merienda / cena / snack) eligiendo alimentos de tu caché o creando uno nuevo. El total del día se calcula automáticamente.
+- **Mis alimentos** (nuevo en WT3.0): cada alimento que registras se guarda en tu caché personal con su valor nutricional, así la próxima vez es un solo toque. Gestionable desde Ajustes → Mis alimentos.
 - **Registra** peso diario, calorías, desglose por comidas y ejercicio
 - **Navega** entre días con flechas para editar registros anteriores
 - **Visualiza** tu evolución con gráficas de peso y calorías (Chart.js)
@@ -78,6 +80,14 @@ ORIGIN=http://localhost:3000
 npm install
 npm run dev
 ```
+
+### 4. Ejecutar los tests
+
+```bash
+npm test
+```
+
+Suite con Jest + supertest. Las pruebas usan SQLite en memoria (`DB_PATH=:memory:`), por lo que no tocan tu base de datos real.
 
 Abre **http://localhost:3000** en tu navegador. La primera vez te pedirá crear tu usuario.
 
@@ -225,6 +235,23 @@ Todas las rutas de datos requieren autenticación (`Authorization: Bearer <token
 | `GET` | `/api/stats/prediction` | Predicción de llegada al objetivo |
 | `GET` | `/api/weather` | Tiempo del día según localidad del usuario (caché 1h) |
 | `GET` | `/api/weather/municipalities?q=` | Buscar municipios AEMET por nombre |
+| `GET` | `/api/version` | Versión de la app (sin auth) |
+
+### Alimentos y comidas (WT3.0)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/api/foods` | Caché personal de alimentos del usuario |
+| `GET` | `/api/foods/search?q=` | Búsqueda fuzzy ignorando acentos |
+| `POST` | `/api/foods` | Crear alimento (dedup por nombre+marca) |
+| `PATCH` | `/api/foods/:id` | Editar alimento |
+| `DELETE` | `/api/foods/:id` | Eliminar alimento |
+| `GET` | `/api/meals/:date` | Entradas de comidas del día agrupadas por tipo |
+| `POST` | `/api/meals` | Añadir entrada (`date`, `meal_type`, `food_id`, `grams`) |
+| `DELETE` | `/api/meals/:id` | Eliminar entrada |
+| `POST` | `/api/meals/:date/use-from-meals` | Calcular el total diario desde el desglose |
+
+Los tipos de comida válidos son: `desayuno`, `almuerzo`, `comida`, `merienda`, `cena`, `snack`.
 
 ### Admin
 
