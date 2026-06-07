@@ -157,6 +157,7 @@ function openAddFoodSheet(mealType) {
 }
 
 function closeAddFoodSheet() {
+  stopBarcodeScan();
   document.getElementById('addFoodSheet').classList.remove('open');
 }
 
@@ -183,18 +184,87 @@ function wireSheetHandlers() {
     document.getElementById('createFoodPanel').style.display = 'none';
     document.getElementById('foodSearchInput').focus();
   });
+
+  document.getElementById('scanBarcodeBtn')?.addEventListener('click', startBarcodeScan);
+  document.getElementById('cancelScanBtn')?.addEventListener('click', stopBarcodeScan);
 }
+
+// ─── Escaneo de código de barras (html5-qrcode) ────────────────────────────────
+
+let barcodeScanner = null;
+
+async function startBarcodeScan() {
+  if (typeof Html5Qrcode === 'undefined') {
+    showToast('Escáner no disponible', 'error');
+    return;
+  }
+  document.getElementById('barcodeScannerWrap').style.display = 'block';
+  document.getElementById('scanBarcodeBtn').style.display = 'none';
+
+  try {
+    barcodeScanner = new Html5Qrcode('barcodeReader', { verbose: false });
+    await barcodeScanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 250, height: 150 } },
+      onBarcodeDetected,
+      () => {} // ignorar fallos de frame
+    );
+  } catch (e) {
+    showToast('No se pudo abrir la cámara. Revisa los permisos.', 'error');
+    stopBarcodeScan();
+  }
+}
+
+async function stopBarcodeScan() {
+  if (barcodeScanner) {
+    try { await barcodeScanner.stop(); barcodeScanner.clear(); } catch {}
+    barcodeScanner = null;
+  }
+  const wrap = document.getElementById('barcodeScannerWrap');
+  if (wrap) wrap.style.display = 'none';
+  const btn = document.getElementById('scanBarcodeBtn');
+  if (btn) btn.style.display = '';
+}
+
+async function onBarcodeDetected(code) {
+  await stopBarcodeScan();
+  showToast('Código leído: ' + code);
+  try {
+    const res = await API.lookupBarcode(code);
+    const food = res.food;
+    if (res.origin === 'cache') {
+      selectCachedFood(food);
+    } else {
+      // Viene de Open Food Facts → importar a la caché y seleccionar
+      const saved = await API.createFood({
+        name: food.name, brand: food.brand || null, barcode: food.barcode || code,
+        kcal_per_100g: food.kcal_per_100g, protein_g: food.protein_g ?? null,
+        carbs_g: food.carbs_g ?? null, fat_g: food.fat_g ?? null,
+        source: 'barcode', confidence: food.confidence ?? 95,
+      });
+      showToast('Guardado en tus alimentos');
+      selectCachedFood(saved);
+    }
+  } catch (e) {
+    // No encontrado → ofrecer crear a mano con el código ya puesto
+    showToast('Producto no encontrado. Créalo a mano.', 'error');
+    showCreateFoodPanelWithName('');
+  }
+}
+
+// Resultados actualmente mostrados (mezcla caché + Open Food Facts).
+let lastResults = [];
 
 async function showTopFoods() {
   try {
     const foods = await API.getFoods();
     if (foods.length === 0) {
       setHTML(document.getElementById('foodResults'),
-        '<div class="food-empty-state">Aún no tienes alimentos guardados.<br>Empieza creando uno nuevo.</div>');
-      showCreateFoodPanelWithName('');
+        '<div class="food-empty-state">Aún no tienes alimentos guardados.<br>Busca un producto arriba, escanea un código de barras o crea uno nuevo.</div>');
       return;
     }
-    renderFoodList(foods.slice(0, 8), 'Más usados');
+    lastResults = foods.slice(0, 8).map(f => ({ ...f, origin: 'cache' }));
+    renderResults([{ title: 'Más usados', items: lastResults }]);
   } catch {}
 }
 
@@ -204,43 +274,93 @@ async function doFoodSearch(q) {
     showTopFoods();
     return;
   }
-  try {
-    const results = await API.searchFoods(q);
-    if (results.length === 0) {
-      setHTML(resultsEl,
-        '<div class="food-empty-state"><strong>"' + esc(q) + '"</strong> no está en tu caché.<br>Créalo abajo y se guardará para la próxima vez.</div>');
-      showCreateFoodPanelWithName(q);
-    } else {
-      renderFoodList(results, 'Coincidencias');
-      document.getElementById('createFoodPanel').style.display = 'none';
-    }
-  } catch (e) {
-    showToast('Error buscando: ' + e.message, 'error');
+
+  setHTML(resultsEl, '<div class="food-empty-state">Buscando…</div>');
+  document.getElementById('createFoodPanel').style.display = 'none';
+
+  // 1) Caché personal (instantáneo). 2) Open Food Facts (red).
+  let cache = [];
+  try { cache = (await API.searchFoods(q)).map(f => ({ ...f, origin: 'cache' })); } catch {}
+
+  let external = [];
+  try { external = (await API.searchCatalog(q)) || []; } catch {}
+
+  // Evitar duplicar en "catálogo" lo que ya tienes por código de barras
+  const cachedBarcodes = new Set(cache.map(f => f.barcode).filter(Boolean));
+  external = external.filter(f => !f.barcode || !cachedBarcodes.has(f.barcode));
+
+  lastResults = [...cache, ...external];
+
+  const sections = [];
+  if (cache.length)    sections.push({ title: 'Tus alimentos', items: cache });
+  if (external.length) sections.push({ title: 'Open Food Facts', items: external });
+
+  if (sections.length === 0) {
+    setHTML(resultsEl,
+      '<div class="food-empty-state">No se ha encontrado <strong>"' + esc(q) + '"</strong>.<br>Créalo abajo o escanea su código de barras.</div>');
+    showCreateFoodPanelWithName(q);
+    return;
   }
+  renderResults(sections);
 }
 
-function renderFoodList(foods, sectionTitle) {
+function renderResults(sections) {
   const resultsEl = document.getElementById('foodResults');
-  setHTML(resultsEl, `
-    <div class="sheet-section-title">${esc(sectionTitle)}</div>
-    ${foods.map(f => `
-      <div class="food-result-item" data-id="${f.id}">
+  let idx = 0;
+  const html = sections.map(sec => `
+    <div class="sheet-section-title">${esc(sec.title)}</div>
+    ${sec.items.map(f => {
+      const i = lastResults.indexOf(f);
+      const badge = f.origin === 'openfoodfacts'
+        ? '<span class="off-badge">OFF</span>' : '';
+      return `
+      <div class="food-result-item" data-idx="${i}">
         <div>
-          <div class="name">${esc(f.name)}${f.brand ? ' <span class="brand">. ' + esc(f.brand) + '</span>' : ''}</div>
+          <div class="name">${esc(f.name)}${f.brand ? ' <span class="brand">. ' + esc(f.brand) + '</span>' : ''} ${badge}</div>
           <div class="kcal">${Math.round(f.kcal_per_100g)} kcal/100g</div>
         </div>
         <span style="color:var(--primary);font-weight:700">></span>
-      </div>
-    `).join('')}
-  `);
-  resultsEl.querySelectorAll('[data-id]').forEach(el => {
-    el.addEventListener('click', () => selectFood(parseInt(el.dataset.id), foods));
+      </div>`;
+    }).join('')}
+  `).join('');
+  setHTML(resultsEl, html);
+  resultsEl.querySelectorAll('[data-idx]').forEach(el => {
+    el.addEventListener('click', () => chooseResult(parseInt(el.dataset.idx)));
   });
 }
 
-function selectFood(id, foods) {
-  const food = foods.find(f => f.id === id);
-  if (!food) return;
+// Al elegir un resultado: si ya es de tu caché, se selecciona; si viene de
+// Open Food Facts, primero se importa a tu caché (queda guardado) y luego se selecciona.
+async function chooseResult(idx) {
+  const r = lastResults[idx];
+  if (!r) return;
+
+  if (r.origin === 'cache' && r.id) {
+    selectCachedFood(r);
+    return;
+  }
+
+  // Importar de Open Food Facts a la caché personal
+  try {
+    const saved = await API.createFood({
+      name: r.name,
+      brand: r.brand || null,
+      barcode: r.barcode || null,
+      kcal_per_100g: r.kcal_per_100g,
+      protein_g: r.protein_g ?? null,
+      carbs_g: r.carbs_g ?? null,
+      fat_g: r.fat_g ?? null,
+      source: r.source || 'barcode',
+      confidence: r.confidence ?? 95,
+    });
+    showToast('Guardado en tus alimentos');
+    selectCachedFood(saved);
+  } catch (e) {
+    showToast('Error al guardar: ' + e.message, 'error');
+  }
+}
+
+function selectCachedFood(food) {
   currentSelectedFood = food;
 
   setHTML(document.getElementById('selectedFoodCard'),
@@ -310,7 +430,7 @@ async function confirmCreateFood() {
   try {
     const food = await API.createFood({ name, brand: brand || null, kcal_per_100g: kcal, source: 'manual' });
     showToast('Alimento guardado');
-    selectFood(food.id, [food]);
+    selectCachedFood(food);
   } catch (e) {
     showToast('Error: ' + e.message, 'error');
   }

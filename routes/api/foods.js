@@ -3,6 +3,7 @@ const router  = express.Router();
 const db      = require('../../db/database');
 const { requireAuth } = require('../../middleware/auth');
 const { fuzzyScore, normalize } = require('../../utils/meals');
+const off = require('../../utils/openfoodfacts');
 
 router.use(requireAuth);
 
@@ -55,6 +56,7 @@ router.get('/', (req, res) => {
 // GET /api/foods/search?q=jamon — búsqueda fuzzy en el caché personal
 router.get('/search', (req, res) => {
   try {
+    res.set('Cache-Control', 'no-store');
     const q = (req.query.q || '').toString().trim();
     if (!q) return res.json({ success: true, data: [] });
 
@@ -69,6 +71,50 @@ router.get('/search', (req, res) => {
       .slice(0, 20);
 
     res.json({ success: true, data: scored });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// GET /api/foods/catalog/search?q= — busca productos en Open Food Facts por nombre.
+// No persiste nada: el cliente decide qué importar a su caché vía POST /api/foods.
+router.get('/catalog/search', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store'); // resultados de búsqueda nunca cacheados
+    const q = (req.query.q || '').toString().trim();
+    if (q.length < 2) return res.json({ success: true, data: [] });
+
+    let results = [];
+    try {
+      results = (await off.searchByName(q, 15)).map(f => ({ ...f, origin: 'openfoodfacts' }));
+    } catch {
+      results = []; // Open Food Facts caído → lista vacía, el usuario puede crear a mano
+    }
+
+    res.json({ success: true, data: results });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// GET /api/foods/catalog/barcode/:code — busca un producto por código de barras.
+router.get('/catalog/barcode/:code', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const code = (req.params.code || '').replace(/\D/g, '');
+    if (!code) return res.status(400).json({ success: false, error: 'Código de barras inválido' });
+
+    // 1) ¿Ya lo tiene el usuario en su caché por barcode?
+    const cached = db.prepare('SELECT * FROM foods WHERE user_id = ? AND barcode = ?')
+      .get(req.user.id, code);
+    if (cached) return res.json({ success: true, data: { food: cached, origin: 'cache' } });
+
+    // 2) Open Food Facts
+    const product = await off.getByBarcode(code);
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Producto no encontrado. Prueba a crearlo a mano o con foto a la etiqueta.' });
+    }
+    res.json({ success: true, data: { food: { ...product, origin: 'openfoodfacts' }, origin: 'openfoodfacts' } });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

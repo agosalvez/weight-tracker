@@ -1,4 +1,4 @@
-# Weight Tracker — WT3.0
+# Weight Tracker — WT3.1
 
 > Registra tu peso, calorías y evolución — desde el móvil, en segundos.
 
@@ -13,7 +13,8 @@ Una web app **mobile-first** pensada para que abrir, registrar y cerrar te lleve
 
 ## ¿Qué hace?
 
-- **Desglose por comidas con caché personal de alimentos** (nuevo en WT3.0): registra cada comida del día (desayuno / almuerzo / comida / merienda / cena / snack) eligiendo alimentos de tu caché o creando uno nuevo. El total del día se calcula automáticamente.
+- **Buscador de productos + escaneo de código de barras** (nuevo en WT3.1): busca cualquier producto por nombre en [Open Food Facts](https://world.openfoodfacts.org) (gratis, sin API key) o escanea su código de barras con la cámara. Al elegirlo se guarda en tu caché personal y queda editable.
+- **Desglose por comidas con caché personal de alimentos** (WT3.0): registra cada comida del día (desayuno / almuerzo / comida / merienda / cena / snack) eligiendo alimentos de tu caché o creando uno nuevo. El total del día se calcula automáticamente.
 - **Mis alimentos** (nuevo en WT3.0): cada alimento que registras se guarda en tu caché personal con su valor nutricional, así la próxima vez es un solo toque. Gestionable desde Ajustes → Mis alimentos.
 - **Registra** peso diario, calorías, desglose por comidas y ejercicio
 - **Navega** entre días con flechas para editar registros anteriores
@@ -250,6 +251,8 @@ Todas las rutas de datos requieren autenticación (`Authorization: Bearer <token
 | `POST` | `/api/meals` | Añadir entrada (`date`, `meal_type`, `food_id`, `grams`) |
 | `DELETE` | `/api/meals/:id` | Eliminar entrada |
 | `POST` | `/api/meals/:date/use-from-meals` | Calcular el total diario desde el desglose |
+| `GET` | `/api/foods/catalog/search?q=` | Buscar productos por nombre en Open Food Facts |
+| `GET` | `/api/foods/catalog/barcode/:code` | Buscar producto por código de barras (caché → Open Food Facts) |
 
 Los tipos de comida válidos son: `desayuno`, `almuerzo`, `comida`, `merienda`, `cena`, `snack`.
 

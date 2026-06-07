@@ -1,5 +1,24 @@
 # Changelog
 
+## WT3.1 — 2026-06-07
+
+### Nuevo
+- **Buscador de productos por nombre** vía Open Food Facts (gratis, sin API key). En el panel de añadir alimento, la búsqueda combina tu caché personal ("Tus alimentos") con resultados de Open Food Facts ("OFF"). Al elegir un resultado externo se importa automáticamente a tu caché y queda editable.
+- **Escaneo de código de barras** con la cámara (librería `html5-qrcode` alojada localmente, sin CDN). Busca primero en tu caché y, si no está, en Open Food Facts. Si no se encuentra, ofrece crearlo a mano.
+- Endpoints `GET /api/foods/catalog/search?q=` y `GET /api/foods/catalog/barcode/:code`.
+- Cliente Open Food Facts (`utils/openfoodfacts.js`) con mapeo a nuestro schema, filtrado de productos sin kcal y deduplicación. 26 tests nuevos (16 cliente + 10 rutas), todo con red mockeada.
+
+### Decisiones de diseño
+- **Sin catálogo genérico precargado**: por preferencia, los alimentos salen solo de Open Food Facts (datos reales de fabricante) o los creas tú. Tu caché personal es siempre la fuente de verdad y es editable.
+
+### Seguridad / privacidad
+- Se dejan de trackear los ficheros SQLite (`*.db`, `-wal`, `-shm`) que estaban en el repo. Auditado: **nunca se commitearon credenciales** (la tabla `users` jamás estuvo en el historial). La librería de escaneo se sirve localmente para no depender de CDNs externos.
+
+### Sin nuevas variables de entorno
+Open Food Facts no requiere API key. El `.env` de producción no cambia.
+
+---
+
 ## WT3.0 — 2026-06-06
 
 ### Nuevo

@@ -64,10 +64,14 @@ const API = {
 
   // Foods (caché personal de alimentos)
   getFoods:       ()     => API._fetch('/api/foods'),
-  searchFoods:    q      => API._fetch('/api/foods/search?q=' + encodeURIComponent(q)),
+  searchFoods:    q      => API._fetch('/api/foods/search?q=' + encodeURIComponent(q), { cache: 'no-store' }),
   createFood:     data   => API._fetch('/api/foods', { method: 'POST', body: JSON.stringify(data) }),
   updateFood:     (id,d) => API._fetch(`/api/foods/${id}`, { method: 'PATCH', body: JSON.stringify(d) }),
   deleteFood:     id     => API._fetch(`/api/foods/${id}`, { method: 'DELETE' }),
+
+  // Catálogo externo (Open Food Facts) — sin caché para no reutilizar respuestas vacías
+  searchCatalog:  q      => API._fetch('/api/foods/catalog/search?q=' + encodeURIComponent(q), { cache: 'no-store' }),
+  lookupBarcode:  code   => API._fetch('/api/foods/catalog/barcode/' + encodeURIComponent(code), { cache: 'no-store' }),
 
   // Meals (desglose por comidas)
   getMeals:       date   => API._fetch(`/api/meals/${date}`),
