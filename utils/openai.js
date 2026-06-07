@@ -2,8 +2,16 @@
 // La API key se lee SOLO del entorno (Portainer). Si no está, las funciones
 // lanzan un error con code='NO_KEY' y la app degrada con elegancia.
 
-const MODEL    = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+
+// Modelos que el administrador puede elegir desde la configuración.
+const ALLOWED_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'];
+const DEFAULT_MODEL  = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
+// Resuelve el modelo a usar: el pedido (si es válido) > env/default.
+function resolveModel(requested) {
+  return ALLOWED_MODELS.includes(requested) ? requested : DEFAULT_MODEL;
+}
 
 const SYSTEM_PROMPT =
   'Eres un parser nutricional. Recibes una descripción libre en español de una ' +
@@ -39,7 +47,8 @@ function sanitizeItems(parsed) {
 }
 
 // Parsea una descripción libre. Devuelve { items, usage }.
-async function parseFreeText(text) {
+// `model` (opcional) lo decide el administrador; si no es válido cae al default.
+async function parseFreeText(text, { model } = {}) {
   if (!isConfigured()) {
     const e = new Error('OPENAI_API_KEY no configurada');
     e.code = 'NO_KEY';
@@ -55,7 +64,7 @@ async function parseFreeText(text) {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: resolveModel(model),
       temperature: 0,
       max_tokens: 500,
       response_format: { type: 'json_object' },
@@ -83,4 +92,4 @@ async function parseFreeText(text) {
   return { items: sanitizeItems(parsed), usage: data.usage || null };
 }
 
-module.exports = { isConfigured, parseFreeText, sanitizeItems, MODEL };
+module.exports = { isConfigured, parseFreeText, sanitizeItems, resolveModel, ALLOWED_MODELS, DEFAULT_MODEL };

@@ -59,13 +59,61 @@ function renderMealsSkeleton() {
         <span class="meal-total" id="meal-total-${m.type}">0 kcal</span>
       </div>
       <div class="meal-body" id="meal-body-${m.type}"></div>
-      <button class="meal-add-btn" data-add="${m.type}">+ Añadir alimento</button>
+      <div class="meal-actions">
+        <button class="meal-add-btn" data-add="${m.type}">+ Añadir alimento</button>
+        <button class="meal-mini-btn" data-copy="${m.type}" title="Copiar esta comida de ayer">Copiar de ayer</button>
+        <button class="meal-mini-btn" data-habit="${m.type}" title="Guardar esta comida como habitual">★ Habitual</button>
+      </div>
     </div>
   `).join(''));
 
   root.querySelectorAll('[data-add]').forEach(btn => {
     btn.addEventListener('click', () => openAddFoodSheet(btn.dataset.add));
   });
+  root.querySelectorAll('[data-copy]').forEach(btn => {
+    btn.addEventListener('click', () => copyMealFromYesterday(btn.dataset.copy));
+  });
+  root.querySelectorAll('[data-habit]').forEach(btn => {
+    btn.addEventListener('click', () => saveMealAsHabitual(btn.dataset.habit));
+  });
+}
+
+function yesterdayOf(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() - 1);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+
+async function copyMealFromYesterday(mealType) {
+  const to = getCurrentDate();
+  const from = yesterdayOf(to);
+  try {
+    const r = await API.copyDay({ from_date: from, to_date: to, meal_type: mealType });
+    showToast(`Copiado de ayer (${r.copied})`);
+    refreshAfterMealChange();
+  } catch (e) {
+    showToast(e.message.includes('copiar') ? 'Ayer no registraste esa comida' : ('Error: ' + e.message), 'error');
+  }
+}
+
+async function saveMealAsHabitual(mealType) {
+  const label = MEAL_DEFS.find(m => m.type === mealType)?.label || '';
+  const name = window.prompt(`Nombre para esta comida habitual (${label}):`, label);
+  if (name == null) return;
+  if (!name.trim()) { showToast('Ponle un nombre', 'error'); return; }
+  try {
+    await API.saveMealTemplate({ date: getCurrentDate(), meal_type: mealType, name: name.trim() });
+    showToast('Guardada como habitual ★');
+  } catch (e) {
+    showToast(e.message.includes('alimentos') ? 'Esa comida está vacía hoy' : ('Error: ' + e.message), 'error');
+  }
+}
+
+function refreshAfterMealChange() {
+  loadMealsForCurrentDate();
+  if (typeof loadDayData === 'function') loadDayData();
+  if (typeof loadQuickStats === 'function') loadQuickStats();
 }
 
 async function loadMealsForCurrentDate() {
@@ -158,7 +206,10 @@ function openAddFoodSheet(mealType) {
   const ftPanel = document.getElementById('freeTextPanel');
   if (ftPanel) ftPanel.open = false;
   lastParsed = [];
+  const bar = document.getElementById('habitualsBar');
+  if (bar) setHTML(bar, '');
   document.getElementById('addFoodSheet').classList.add('open');
+  renderHabituals(mealType);
   showTopFoods();
   setTimeout(() => document.getElementById('foodSearchInput').focus(), 100);
 }
@@ -335,6 +386,40 @@ async function onBarcodeDetected(code) {
 
 // Resultados actualmente mostrados (mezcla caché + Open Food Facts).
 let lastResults = [];
+
+async function renderHabituals(mealType) {
+  const bar = document.getElementById('habitualsBar');
+  if (!bar) return;
+  setHTML(bar, '');
+  try {
+    const tpls = (await API.getMealTemplates()) || [];
+    const applicable = tpls.filter(t => !t.meal_type || t.meal_type === mealType);
+    if (applicable.length === 0) return;
+    setHTML(bar, `
+      <div class="sheet-section-title">Tus habituales</div>
+      <div class="habitual-chips">
+        ${applicable.map(t => `
+          <button class="habitual-chip" data-tpl="${t.id}">
+            ★ ${esc(t.name)} <span>${t.total_kcal} kcal</span>
+          </button>`).join('')}
+      </div>
+    `);
+    bar.querySelectorAll('[data-tpl]').forEach(el => {
+      el.addEventListener('click', () => applyHabitual(parseInt(el.dataset.tpl)));
+    });
+  } catch {}
+}
+
+async function applyHabitual(id) {
+  try {
+    const r = await API.applyMealTemplate(id, { date: getCurrentDate(), meal_type: currentMealType });
+    showToast(`Añadido (${r.applied})`);
+    closeAddFoodSheet();
+    refreshAfterMealChange();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
 
 async function showTopFoods() {
   try {

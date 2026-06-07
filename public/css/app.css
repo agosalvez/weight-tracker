@@ -1040,6 +1040,41 @@ input[type=number] { -moz-appearance: textfield; }
   margin: 12px 0 8px;
 }
 
+.meal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  border-top: 1px dashed var(--border);
+}
+.meal-actions .meal-add-btn { border-top: none; flex: 1 1 auto; }
+
+.meal-mini-btn {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 8px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.meal-mini-btn:hover { background: var(--bg); color: var(--primary); }
+
+.habitual-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.habitual-chip {
+  background: var(--primary-50);
+  border: 1px solid var(--primary-100);
+  color: var(--primary-dark);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.habitual-chip span { font-weight: 400; color: var(--text-muted); font-size: 0.72rem; }
+.habitual-chip:hover { background: var(--primary-100); }
+
 .off-badge {
   font-size: 0.6rem;
   font-weight: 700;

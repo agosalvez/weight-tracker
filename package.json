@@ -1,6 +1,6 @@
 {
   "name": "weight-tracker",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "description": "Registro de peso, calorias y desglose por comidas - Mobile first",
   "main": "server.js",
   "scripts": {

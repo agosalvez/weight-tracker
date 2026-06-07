@@ -50,6 +50,18 @@
         </label>
       </div>
 
+      <!-- Modelo de IA (texto libre) -->
+      <div style="padding:12px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:14px;border:1px solid var(--border)">
+        <div style="font-size:0.87rem;font-weight:700;margin-bottom:2px">Modelo de IA (texto libre)</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px">Modelo de OpenAI para interpretar las comidas escritas. Mini es el más barato.</div>
+        <select id="openaiModelSelect" class="form-select" onchange="saveOpenaiModel(this.value)">
+          <option value="gpt-4o-mini">gpt-4o-mini (recomendado, más barato)</option>
+          <option value="gpt-4o">gpt-4o (más preciso, más caro)</option>
+          <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+          <option value="gpt-4.1">gpt-4.1</option>
+        </select>
+      </div>
+
       <!-- Crear usuario -->
       <div id="createUserForm" style="display:none;background:var(--bg);border-radius:var(--radius-md);padding:14px;margin-bottom:14px;border:1px solid var(--border)">
         <p style="font-size:0.85rem;font-weight:700;margin-bottom:12px">Nuevo usuario</p>
@@ -326,8 +338,24 @@
       const on  = cfg.allow_registration === '1';
       document.getElementById('allowRegToggle').checked = on;
       updateToggleStyle(on);
+      if (cfg.openai_model) {
+        const sel = document.getElementById('openaiModelSelect');
+        if (sel) sel.value = cfg.openai_model;
+      }
     } catch {}
   }
+
+  window.saveOpenaiModel = async (model) => {
+    try {
+      await API._fetch('/api/admin/config', {
+        method: 'PATCH',
+        body: JSON.stringify({ openai_model: model }),
+      });
+      showToast('Modelo actualizado: ' + model);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
 
   function updateToggleStyle(on) {
     const slider = document.getElementById('allowRegSlider');

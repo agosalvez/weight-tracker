@@ -1,5 +1,20 @@
 # Changelog
 
+## WT3.3 — 2026-06-07
+
+### Nuevo
+- **Comidas habituales (plantillas)**: en cada comida, botón "★ Habitual" para guardarla con un nombre. Al abrir "Añadir alimento" aparecen tus habituales aplicables como chips; un toque las añade enteras. Luego puedes editar/quitar alimentos como siempre.
+- **Copiar de ayer**: botón por comida que copia esa misma comida del día anterior.
+- **Modelo de IA configurable por el administrador** desde Ajustes → Panel de administración (gpt-4o-mini / gpt-4o / gpt-4.1-mini / gpt-4.1). Se guarda en `app_config.openai_model` y lo usa el texto libre. Validado contra una lista permitida.
+- Tablas `meal_templates` y `meal_template_items` (snapshot de nombre y kcal/100g, robustas ante borrado de alimentos).
+- Endpoints: `GET/POST /api/meals/templates`, `POST /api/meals/templates/:id/apply`, `DELETE /api/meals/templates/:id`, `POST /api/meals/copy-day`.
+- 19 tests nuevos (8 plantillas + 3 config admin + ajustes). Suite total: 93.
+
+### Notas
+- `app_config` arranca con `openai_model = gpt-4o-mini`. Cambiarlo desde la UI no requiere redeploy.
+
+---
+
 ## WT3.2 — 2026-06-07
 
 ### Nuevo

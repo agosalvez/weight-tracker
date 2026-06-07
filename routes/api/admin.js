@@ -134,9 +134,11 @@ router.get('/config', (req, res) => {
 // ─── PATCH /api/admin/config — actualizar una clave de configuración ──────────
 router.patch('/config', (req, res) => {
   try {
-    const allowed = ['allow_registration'];
+    const allowed = ['allow_registration', 'openai_model'];
+    const { ALLOWED_MODELS } = require('../../utils/openai');
     for (const [key, value] of Object.entries(req.body)) {
       if (!allowed.includes(key)) continue;
+      if (key === 'openai_model' && !ALLOWED_MODELS.includes(String(value))) continue; // modelo no permitido
       db.prepare('INSERT OR REPLACE INTO app_config (key, value) VALUES (?, ?)').run(key, String(value));
     }
     const rows = db.prepare('SELECT key, value FROM app_config').all();

@@ -80,6 +80,13 @@ const API = {
   useFromMeals:   date   => API._fetch(`/api/meals/${date}/use-from-meals`, { method: 'POST' }),
   parseMealText:  text   => API._fetch('/api/meals/parse-text', { method: 'POST', body: JSON.stringify({ text }) }),
 
+  // Plantillas de comidas habituales
+  getMealTemplates: ()    => API._fetch('/api/meals/templates'),
+  saveMealTemplate: data  => API._fetch('/api/meals/templates', { method: 'POST', body: JSON.stringify(data) }),
+  applyMealTemplate: (id, data) => API._fetch(`/api/meals/templates/${id}/apply`, { method: 'POST', body: JSON.stringify(data) }),
+  deleteMealTemplate: id  => API._fetch(`/api/meals/templates/${id}`, { method: 'DELETE' }),
+  copyDay:        data    => API._fetch('/api/meals/copy-day', { method: 'POST', body: JSON.stringify(data) }),
+
   // Versión de la app
   getVersion:     ()     => fetch('/api/version').then(r => r.json()).then(j => j.data),
 

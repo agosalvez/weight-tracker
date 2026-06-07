@@ -1,4 +1,4 @@
-# Weight Tracker — WT3.2
+# Weight Tracker — WT3.3
 
 > Registra tu peso, calorías y evolución — desde el móvil, en segundos.
 
@@ -13,7 +13,8 @@ Una web app **mobile-first** pensada para que abrir, registrar y cerrar te lleve
 
 ## ¿Qué hace?
 
-- **Registro por texto libre con IA** (nuevo en WT3.2): escribe *"pan tostado 60g, 2 huevos y un café"* y la IA (`gpt-4o-mini`) lo desglosa en alimentos con sus kcal. Lo que ya tengas en tu caché se reutiliza sin gastar tokens. Requiere configurar `OPENAI_API_KEY` (si no, esta función se desactiva sola y el resto sigue igual).
+- **Comidas habituales y copiar de ayer** (nuevo en WT3.3): marca cualquier comida como "habitual ★" para guardarla, y aplícala a otro día con un toque. O copia la comida del día anterior. Luego editas/quitas alimentos normalmente. El administrador puede elegir el modelo de IA desde Ajustes.
+- **Registro por texto libre con IA** (WT3.2): escribe *"pan tostado 60g, 2 huevos y un café"* y la IA (`gpt-4o-mini`) lo desglosa en alimentos con sus kcal. Lo que ya tengas en tu caché se reutiliza sin gastar tokens. Requiere configurar `OPENAI_API_KEY` (si no, esta función se desactiva sola y el resto sigue igual).
 - **Buscador de productos + escaneo de código de barras** (WT3.1): busca cualquier producto por nombre en [Open Food Facts](https://world.openfoodfacts.org) (gratis, sin API key) o escanea su código de barras con la cámara. Al elegirlo se guarda en tu caché personal y queda editable.
 - **Desglose por comidas con caché personal de alimentos** (WT3.0): registra cada comida del día (desayuno / almuerzo / comida / merienda / cena / snack) eligiendo alimentos de tu caché o creando uno nuevo. El total del día se calcula automáticamente.
 - **Mis alimentos** (nuevo en WT3.0): cada alimento que registras se guarda en tu caché personal con su valor nutricional, así la próxima vez es un solo toque. Gestionable desde Ajustes → Mis alimentos.
@@ -255,6 +256,11 @@ Todas las rutas de datos requieren autenticación (`Authorization: Bearer <token
 | `DELETE` | `/api/meals/:id` | Eliminar entrada |
 | `POST` | `/api/meals/:date/use-from-meals` | Calcular el total diario desde el desglose |
 | `POST` | `/api/meals/parse-text` | Interpretar texto libre con IA → previsualización de alimentos (WT3.2) |
+| `GET` | `/api/meals/templates` | Listar comidas habituales (WT3.3) |
+| `POST` | `/api/meals/templates` | Guardar un día/comida como habitual |
+| `POST` | `/api/meals/templates/:id/apply` | Aplicar una habitual a un día |
+| `DELETE` | `/api/meals/templates/:id` | Eliminar una habitual |
+| `POST` | `/api/meals/copy-day` | Copiar comidas de un día a otro |
 | `GET` | `/api/foods/catalog/search?q=` | Buscar productos por nombre en Open Food Facts |
 | `GET` | `/api/foods/catalog/barcode/:code` | Buscar producto por código de barras (caché → Open Food Facts) |
 

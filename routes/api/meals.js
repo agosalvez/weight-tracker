@@ -43,6 +43,149 @@ function recalcDailyLog(userId, date) {
   return buckets;
 }
 
+// Inserta una entrada de comida directamente (usado por plantillas y copiar día).
+function insertEntry(userId, date, mealType, { food_id, food_name_snapshot, grams, units, unit_label, kcal }) {
+  db.prepare(`
+    INSERT INTO meal_entries (user_id, date, meal_type, food_id, food_name_snapshot, grams, units, unit_label, kcal)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(userId, date, mealType, food_id ?? null, food_name_snapshot,
+         grams ?? null, units ?? null, unit_label ?? null, Math.round(kcal) || 0);
+}
+
+// ─── Plantillas de comidas habituales ─────────────────────────────────────────
+
+// GET /api/meals/templates — lista las plantillas del usuario
+router.get('/templates', (req, res) => {
+  try {
+    const tpls = db.prepare(`
+      SELECT t.*,
+             (SELECT COUNT(*) FROM meal_template_items i WHERE i.template_id = t.id) AS item_count,
+             (SELECT IFNULL(SUM(ROUND(i.kcal_per_100g * i.grams / 100)), 0)
+                FROM meal_template_items i WHERE i.template_id = t.id) AS total_kcal
+      FROM meal_templates t
+      WHERE t.user_id = ?
+      ORDER BY t.name ASC
+    `).all(req.user.id);
+    res.json({ success: true, data: tpls });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/meals/templates — guarda las entradas de un día/comida como habitual
+router.post('/templates', (req, res) => {
+  try {
+    const { date, meal_type, name } = req.body;
+    if (!DATE_RE.test(date || '')) return res.status(400).json({ success: false, error: 'Fecha inválida' });
+    if (meal_type && !MEAL_TYPES.includes(meal_type)) return res.status(400).json({ success: false, error: 'meal_type inválido' });
+    const tplName = (name || '').toString().trim();
+    if (!tplName) return res.status(400).json({ success: false, error: 'Ponle un nombre a la comida habitual' });
+
+    let query = 'SELECT * FROM meal_entries WHERE user_id = ? AND date = ?';
+    const params = [req.user.id, date];
+    if (meal_type) { query += ' AND meal_type = ?'; params.push(meal_type); }
+    const entries = db.prepare(query).all(...params);
+    if (entries.length === 0) return res.status(400).json({ success: false, error: 'No hay alimentos en esa comida para guardar' });
+
+    const tx = db.transaction(() => {
+      const info = db.prepare('INSERT INTO meal_templates (user_id, name, meal_type) VALUES (?, ?, ?)')
+        .run(req.user.id, tplName, meal_type || null);
+      const tplId = info.lastInsertRowid;
+      const ins = db.prepare(`
+        INSERT INTO meal_template_items (template_id, food_id, food_name_snapshot, grams, units, unit_label, kcal_per_100g)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const e of entries) {
+        // kcal_per_100g: del alimento si existe, si no se deriva de la entrada
+        const food = e.food_id ? db.prepare('SELECT kcal_per_100g FROM foods WHERE id = ?').get(e.food_id) : null;
+        const kcalPer100 = food ? food.kcal_per_100g
+          : (e.grams ? Math.round(e.kcal * 100 / e.grams) : e.kcal);
+        ins.run(tplId, e.food_id, e.food_name_snapshot, e.grams, e.units, e.unit_label, kcalPer100);
+      }
+      return tplId;
+    });
+    const id = tx();
+    res.json({ success: true, data: { id, name: tplName } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/meals/templates/:id/apply — aplica una plantilla a un día/comida
+router.post('/templates/:id/apply', (req, res) => {
+  try {
+    const tpl = db.prepare('SELECT * FROM meal_templates WHERE id = ? AND user_id = ?')
+      .get(req.params.id, req.user.id);
+    if (!tpl) return res.status(404).json({ success: false, error: 'Plantilla no encontrada' });
+
+    const date = req.body.date;
+    if (!DATE_RE.test(date || '')) return res.status(400).json({ success: false, error: 'Fecha inválida' });
+    const mealType = req.body.meal_type || tpl.meal_type;
+    if (!MEAL_TYPES.includes(mealType)) return res.status(400).json({ success: false, error: 'Indica la comida (meal_type)' });
+
+    const items = db.prepare('SELECT * FROM meal_template_items WHERE template_id = ?').all(tpl.id);
+    const tx = db.transaction(() => {
+      for (const it of items) {
+        const kcal = it.grams ? (it.kcal_per_100g * it.grams / 100) : it.kcal_per_100g;
+        insertEntry(req.user.id, date, mealType, {
+          food_id: it.food_id, food_name_snapshot: it.food_name_snapshot,
+          grams: it.grams, units: it.units, unit_label: it.unit_label, kcal,
+        });
+        if (it.food_id) db.prepare('UPDATE foods SET times_used = times_used + 1 WHERE id = ?').run(it.food_id);
+      }
+    });
+    tx();
+    const totals = recalcDailyLog(req.user.id, date);
+    res.json({ success: true, data: { totals, applied: items.length } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// DELETE /api/meals/templates/:id
+router.delete('/templates/:id', (req, res) => {
+  try {
+    const info = db.prepare('DELETE FROM meal_templates WHERE id = ? AND user_id = ?')
+      .run(req.params.id, req.user.id);
+    if (info.changes === 0) return res.status(404).json({ success: false, error: 'Plantilla no encontrada' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/meals/copy-day — copia las entradas de un día a otro (opcionalmente una comida)
+router.post('/copy-day', (req, res) => {
+  try {
+    const { from_date, to_date, meal_type } = req.body;
+    if (!DATE_RE.test(from_date || '') || !DATE_RE.test(to_date || '')) {
+      return res.status(400).json({ success: false, error: 'Fechas inválidas' });
+    }
+    if (meal_type && !MEAL_TYPES.includes(meal_type)) return res.status(400).json({ success: false, error: 'meal_type inválido' });
+
+    let query = 'SELECT * FROM meal_entries WHERE user_id = ? AND date = ?';
+    const params = [req.user.id, from_date];
+    if (meal_type) { query += ' AND meal_type = ?'; params.push(meal_type); }
+    const entries = db.prepare(query).all(...params);
+    if (entries.length === 0) return res.status(400).json({ success: false, error: 'No hay nada que copiar de ese día' });
+
+    const tx = db.transaction(() => {
+      for (const e of entries) {
+        insertEntry(req.user.id, to_date, e.meal_type, {
+          food_id: e.food_id, food_name_snapshot: e.food_name_snapshot,
+          grams: e.grams, units: e.units, unit_label: e.unit_label, kcal: e.kcal,
+        });
+        if (e.food_id) db.prepare('UPDATE foods SET times_used = times_used + 1 WHERE id = ?').run(e.food_id);
+      }
+    });
+    tx();
+    const totals = recalcDailyLog(req.user.id, to_date);
+    res.json({ success: true, data: { totals, copied: entries.length } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // GET /api/meals/:date — lista entradas del día agrupadas por comida
 router.get('/:date', (req, res) => {
   try {
@@ -162,9 +305,10 @@ router.post('/parse-text', async (req, res) => {
     const text = (req.body.text || '').toString().trim();
     if (!text) return res.status(400).json({ success: false, error: 'Escribe qué has comido' });
 
+    const modelRow = db.prepare("SELECT value FROM app_config WHERE key = 'openai_model'").get();
     let parsed;
     try {
-      parsed = await openai.parseFreeText(text);
+      parsed = await openai.parseFreeText(text, { model: modelRow?.value });
     } catch (e) {
       if (e.code === 'NO_KEY') return res.status(503).json({ success: false, error: 'OPENAI_API_KEY no configurada' });
       return res.status(502).json({ success: false, error: 'No se pudo interpretar el texto ahora mismo. Inténtalo de nuevo.' });

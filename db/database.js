@@ -161,6 +161,7 @@ db.exec(`
     value TEXT NOT NULL
   );
   INSERT OR IGNORE INTO app_config (key, value) VALUES ('allow_registration', '0');
+  INSERT OR IGNORE INTO app_config (key, value) VALUES ('openai_model', 'gpt-4o-mini');
 `);
 
 // ── Paso 5: caché personal de alimentos y desglose por comidas (WT3.0) ────────
@@ -210,5 +211,29 @@ if (!logCols.includes('calories_source')) {
   db.exec(`ALTER TABLE daily_logs ADD COLUMN calories_source TEXT NOT NULL DEFAULT 'manual'`);
   console.log('[db] Columna calories_source añadida a daily_logs');
 }
+
+// ── Paso 7: plantillas de comidas habituales (WT3.3) ──────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS meal_templates (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    meal_type   TEXT,
+    created_at  TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS meal_template_items (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id         INTEGER NOT NULL REFERENCES meal_templates(id) ON DELETE CASCADE,
+    food_id             INTEGER REFERENCES foods(id) ON DELETE SET NULL,
+    food_name_snapshot  TEXT NOT NULL,
+    grams               REAL,
+    units               REAL,
+    unit_label          TEXT,
+    kcal_per_100g       REAL NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_templates_user ON meal_templates(user_id);
+`);
 
 module.exports = db;
