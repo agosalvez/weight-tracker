@@ -2,7 +2,8 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../../db/database');
 const { requireAuth } = require('../../middleware/auth');
-const { MEAL_TYPES, computeEntryKcal, aggregateLegacyBuckets } = require('../../utils/meals');
+const { MEAL_TYPES, computeEntryKcal, aggregateLegacyBuckets, fuzzyScore } = require('../../utils/meals');
+const openai  = require('../../utils/openai');
 
 router.use(requireAuth);
 
@@ -144,6 +145,54 @@ router.post('/:date/use-from-meals', (req, res) => {
     }
     const totals = recalcDailyLog(req.user.id, date);
     res.json({ success: true, data: { totals } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/meals/parse-text — interpreta texto libre ("pan tostado 60g y un café")
+// con IA. Devuelve una PREVISUALIZACIÓN (no guarda nada). Para cada alimento ya
+// presente en la caché del usuario se usa su valor guardado (sin gastar tokens
+// en re-estimarlo); el resto los estima el modelo.
+router.post('/parse-text', async (req, res) => {
+  try {
+    if (!openai.isConfigured()) {
+      return res.status(503).json({ success: false, error: 'El reconocimiento por texto no está disponible (falta configurar OPENAI_API_KEY).' });
+    }
+    const text = (req.body.text || '').toString().trim();
+    if (!text) return res.status(400).json({ success: false, error: 'Escribe qué has comido' });
+
+    let parsed;
+    try {
+      parsed = await openai.parseFreeText(text);
+    } catch (e) {
+      if (e.code === 'NO_KEY') return res.status(503).json({ success: false, error: 'OPENAI_API_KEY no configurada' });
+      return res.status(502).json({ success: false, error: 'No se pudo interpretar el texto ahora mismo. Inténtalo de nuevo.' });
+    }
+
+    const cache = db.prepare('SELECT * FROM foods WHERE user_id = ?').all(req.user.id);
+
+    const items = parsed.items.map(it => {
+      // ¿Está ya en la caché del usuario? (match fuzzy por nombre)
+      let best = null, bestScore = 0;
+      for (const f of cache) {
+        const s = fuzzyScore(it.name, f.name);
+        if (s > bestScore) { bestScore = s; best = f; }
+      }
+      const matched = bestScore >= 75 ? best : null;
+      const kcalPer100 = matched ? matched.kcal_per_100g : it.kcal_per_100g;
+      return {
+        name: matched ? matched.name : it.name,
+        grams: it.grams,
+        kcal_per_100g: kcalPer100,
+        kcal: Math.round(kcalPer100 * it.grams / 100),
+        from_cache: !!matched,
+        food_id: matched ? matched.id : null,
+      };
+    });
+
+    const total_kcal = items.reduce((s, i) => s + i.kcal, 0);
+    res.json({ success: true, data: { items, total_kcal } });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

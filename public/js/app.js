@@ -78,6 +78,7 @@ const API = {
   addMealEntry:   data   => API._fetch('/api/meals', { method: 'POST', body: JSON.stringify(data) }),
   deleteMealEntry: id    => API._fetch(`/api/meals/${id}`, { method: 'DELETE' }),
   useFromMeals:   date   => API._fetch(`/api/meals/${date}/use-from-meals`, { method: 'POST' }),
+  parseMealText:  text   => API._fetch('/api/meals/parse-text', { method: 'POST', body: JSON.stringify({ text }) }),
 
   // Versión de la app
   getVersion:     ()     => fetch('/api/version').then(r => r.json()).then(j => j.data),

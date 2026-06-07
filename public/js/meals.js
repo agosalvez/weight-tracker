@@ -151,6 +151,13 @@ function openAddFoodSheet(mealType) {
   setHTML(document.getElementById('foodResults'), '');
   document.getElementById('selectedFoodPanel').style.display = 'none';
   document.getElementById('createFoodPanel').style.display = 'none';
+  const ftInput = document.getElementById('freeTextInput');
+  if (ftInput) ftInput.value = '';
+  const ftPrev = document.getElementById('freeTextPreview');
+  if (ftPrev) setHTML(ftPrev, '');
+  const ftPanel = document.getElementById('freeTextPanel');
+  if (ftPanel) ftPanel.open = false;
+  lastParsed = [];
   document.getElementById('addFoodSheet').classList.add('open');
   showTopFoods();
   setTimeout(() => document.getElementById('foodSearchInput').focus(), 100);
@@ -187,6 +194,80 @@ function wireSheetHandlers() {
 
   document.getElementById('scanBarcodeBtn')?.addEventListener('click', startBarcodeScan);
   document.getElementById('cancelScanBtn')?.addEventListener('click', stopBarcodeScan);
+  document.getElementById('parseTextBtn')?.addEventListener('click', parseFreeText);
+}
+
+// ─── Texto libre con IA ────────────────────────────────────────────────────────
+
+let lastParsed = [];
+
+async function parseFreeText() {
+  const text = document.getElementById('freeTextInput').value.trim();
+  if (!text) { showToast('Escribe qué has comido', 'error'); return; }
+
+  const btn = document.getElementById('parseTextBtn');
+  btn.disabled = true; btn.textContent = 'Interpretando…';
+  try {
+    const data = await API.parseMealText(text);
+    lastParsed = data.items || [];
+    renderParsedPreview(data);
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Interpretar';
+  }
+}
+
+function renderParsedPreview(data) {
+  const el = document.getElementById('freeTextPreview');
+  if (!data.items || data.items.length === 0) {
+    setHTML(el, '<div class="food-empty-state">No he podido interpretar nada. Prueba a reescribirlo.</div>');
+    return;
+  }
+  const rows = data.items.map((it, i) => `
+    <div class="meal-entry" style="border:none;padding:8px 0">
+      <div class="meal-entry-info">
+        <div class="meal-entry-name">${esc(it.name)} ${it.from_cache ? '<span class="off-badge" style="background:var(--success)">CACHÉ</span>' : '<span class="off-badge">IA</span>'}</div>
+        <div class="meal-entry-amt">${it.grams} g · ${it.kcal_per_100g} kcal/100g</div>
+      </div>
+      <span class="meal-entry-kcal">${it.kcal} kcal</span>
+    </div>`).join('');
+  setHTML(el, `
+    ${rows}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0;font-weight:700">
+      <span>Total</span><span>${data.total_kcal} kcal</span>
+    </div>
+    <button class="btn btn-primary btn-block btn-sm" id="confirmParsedBtn">Añadir todo a ${esc(MEAL_DEFS.find(m => m.type === currentMealType)?.label || '')}</button>
+  `);
+  document.getElementById('confirmParsedBtn').addEventListener('click', confirmParsed);
+}
+
+async function confirmParsed() {
+  if (!lastParsed.length) return;
+  const btn = document.getElementById('confirmParsedBtn');
+  btn.disabled = true; btn.textContent = 'Añadiendo…';
+  try {
+    for (const it of lastParsed) {
+      let foodId = it.food_id;
+      if (!foodId) {
+        // Crear el alimento en la caché (origen IA, confianza media) para reutilizarlo después
+        const food = await API.createFood({
+          name: it.name, kcal_per_100g: it.kcal_per_100g, source: 'ai_text', confidence: 60,
+        });
+        foodId = food.id;
+      }
+      await API.addMealEntry({ date: getCurrentDate(), meal_type: currentMealType, food_id: foodId, grams: it.grams });
+    }
+    showToast('Añadido');
+    closeAddFoodSheet();
+    loadMealsForCurrentDate();
+    if (typeof loadDayData === 'function') loadDayData();
+    if (typeof loadQuickStats === 'function') loadQuickStats();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // ─── Escaneo de código de barras (html5-qrcode) ────────────────────────────────

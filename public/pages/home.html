@@ -144,7 +144,7 @@
     </div>
   </div>
 
-  <div class="app-version">WT3.1</div>
+  <div class="app-version">WT3.2</div>
 
 </div>
 
@@ -186,6 +186,14 @@
       <button class="btn btn-ghost btn-block btn-sm" id="cancelScanBtn" style="margin-top:6px">Cancelar escaneo</button>
     </div>
     <div class="food-results" id="foodResults"></div>
+
+    <!-- TEXTO LIBRE (IA) -->
+    <details id="freeTextPanel" style="margin-bottom:12px">
+      <summary style="cursor:pointer;font-size:0.82rem;color:var(--primary);font-weight:600;padding:8px 0">✨ Describir con mis palabras (IA)</summary>
+      <textarea id="freeTextInput" class="form-textarea" placeholder="Ej: pan tostado 60g, 2 huevos y un café con leche" style="margin-top:8px"></textarea>
+      <button class="btn btn-secondary btn-block btn-sm" id="parseTextBtn" style="margin-top:6px">Interpretar</button>
+      <div id="freeTextPreview" style="margin-top:10px"></div>
+    </details>
 
     <div id="selectedFoodPanel" style="display:none">
       <div class="sheet-section-title">Cantidad</div>

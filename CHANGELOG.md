@@ -1,5 +1,21 @@
 # Changelog
 
+## WT3.2 — 2026-06-07
+
+### Nuevo
+- **Registro por texto libre con IA**: en el panel de añadir alimento, un desplegable "✨ Describir con mis palabras" donde escribes algo como *"pan tostado 60g, 2 huevos y un café con leche"*. La IA (`gpt-4o-mini`) lo desglosa en alimentos con gramos y kcal estimadas, muestra una previsualización y, al confirmar, crea las entradas. Los alimentos nuevos se guardan en tu caché (origen `ai_text`) para reutilizarlos sin IA la próxima vez.
+- **Cascada de ahorro de tokens**: antes de estimar, cada alimento se busca en tu caché personal (match fuzzy). Si ya lo tienes, se usa tu valor guardado y no se gasta IA en re-estimarlo.
+- Cliente OpenAI (`utils/openai.js`) por `fetch` (sin SDK), con `response_format: json_object`, `temperature: 0` y `max_tokens` acotado. Endpoint `POST /api/meals/parse-text` que devuelve solo previsualización (no guarda hasta confirmar).
+- 11 tests nuevos (7 cliente + 4 ruta), red mockeada. Suite total: 82.
+
+### Configuración
+- Nueva variable **opcional** `OPENAI_API_KEY` (y `OPENAI_MODEL`, por defecto `gpt-4o-mini`). Si no se configura, el texto libre se desactiva con un aviso claro y **el resto de la app funciona igual**. La key va en el `.env` de Portainer, nunca en el repo.
+
+### Coste
+- Con `gpt-4o-mini`: ~0,0001 € por interpretación. Las comidas que ya estén en tu caché no consumen IA.
+
+---
+
 ## WT3.1 — 2026-06-07
 
 ### Nuevo
