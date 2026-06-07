@@ -22,8 +22,81 @@ const SYSTEM_PROMPT =
   'kcal_per_100g es la densidad calórica por 100 g del alimento. ' +
   'No incluyas texto fuera del JSON, ni explicaciones, ni unidades en los números.';
 
+const LABEL_PROMPT =
+  'Eres un lector de etiquetas nutricionales. Recibes la FOTO de una etiqueta de ' +
+  'información nutricional (normalmente en español). Devuelve SOLO un JSON con esta ' +
+  'forma exacta: {"name":"<nombre del producto si se ve, o cadena vacía>",' +
+  '"brand":"<marca si se ve, o cadena vacía>","kcal_per_100g":<número>,' +
+  '"protein_g":<número o null>,"carbs_g":<número o null>,"fat_g":<número o null>}. ' +
+  'Usa SIEMPRE los valores por 100 g (no por ración). Si la etiqueta solo da kJ, ' +
+  'conviértelo a kcal (kcal = kJ / 4.184). Si no puedes leer las kcal, pon ' +
+  'kcal_per_100g a 0. No incluyas texto fuera del JSON.';
+
 function isConfigured() {
   return !!process.env.OPENAI_API_KEY;
+}
+
+// Valida la respuesta del lector de etiquetas. Devuelve un food o null.
+function sanitizeLabel(parsed) {
+  if (!parsed) return null;
+  const kcal = Number(parsed.kcal_per_100g);
+  if (!isFinite(kcal) || kcal <= 0 || kcal > 1000) return null;
+  const macro = (v) => { const n = Number(v); return isFinite(n) && n >= 0 ? Math.round(n * 10) / 10 : null; };
+  return {
+    name: (parsed.name ? String(parsed.name) : '').trim().slice(0, 120),
+    brand: (parsed.brand ? String(parsed.brand) : '').trim().slice(0, 80) || null,
+    kcal_per_100g: Math.round(kcal),
+    protein_g: macro(parsed.protein_g),
+    carbs_g: macro(parsed.carbs_g),
+    fat_g: macro(parsed.fat_g),
+  };
+}
+
+// Lee una etiqueta nutricional desde una imagen (data URL base64).
+// Devuelve { food, usage, model }. food puede ser null si no se pudo leer.
+async function parseLabelPhoto(imageDataUrl, { model } = {}) {
+  if (!isConfigured()) {
+    const e = new Error('OPENAI_API_KEY no configurada');
+    e.code = 'NO_KEY';
+    throw e;
+  }
+  if (!imageDataUrl || !/^data:image\/(png|jpe?g|webp);base64,/.test(imageDataUrl)) {
+    const e = new Error('Imagen inválida');
+    e.code = 'BAD_IMAGE';
+    throw e;
+  }
+  const useModel = resolveModel(model);
+
+  const res = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: useModel,
+      temperature: 0,
+      max_tokens: 300,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: LABEL_PROMPT },
+        { role: 'user', content: [
+          { type: 'text', text: 'Lee esta etiqueta nutricional.' },
+          { type: 'image_url', image_url: { url: imageDataUrl, detail: 'low' } },
+        ] },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const e = new Error(`OpenAI respondió ${res.status}`);
+    e.code = 'OPENAI_ERROR';
+    throw e;
+  }
+  const data = await res.json();
+  let parsed = {};
+  try { parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}'); } catch { parsed = {}; }
+  return { food: sanitizeLabel(parsed), usage: data.usage || null, model: useModel };
 }
 
 // Valida y limpia la estructura devuelta por el modelo.
@@ -89,7 +162,7 @@ async function parseFreeText(text, { model } = {}) {
     parsed = {};
   }
 
-  return { items: sanitizeItems(parsed), usage: data.usage || null };
+  return { items: sanitizeItems(parsed), usage: data.usage || null, model: resolveModel(model) };
 }
 
-module.exports = { isConfigured, parseFreeText, sanitizeItems, resolveModel, ALLOWED_MODELS, DEFAULT_MODEL };
+module.exports = { isConfigured, parseFreeText, parseLabelPhoto, sanitizeItems, sanitizeLabel, resolveModel, ALLOWED_MODELS, DEFAULT_MODEL };

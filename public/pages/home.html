@@ -144,7 +144,7 @@
     </div>
   </div>
 
-  <div class="app-version">WT3.3</div>
+  <div class="app-version">WT3.4</div>
 
 </div>
 
@@ -185,6 +185,12 @@
       <div id="barcodeReader" style="width:100%;border-radius:var(--radius-md);overflow:hidden"></div>
       <button class="btn btn-ghost btn-block btn-sm" id="cancelScanBtn" style="margin-top:6px">Cancelar escaneo</button>
     </div>
+    <button class="btn btn-ghost btn-block btn-sm" id="labelPhotoBtn" style="margin-bottom:10px">
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Foto a la etiqueta (IA)
+    </button>
+    <input type="file" id="labelPhotoInput" accept="image/*" capture="environment" style="display:none">
+    <div id="labelPhotoStatus" style="margin-bottom:10px"></div>
     <div id="habitualsBar"></div>
     <div class="food-results" id="foodResults"></div>
 

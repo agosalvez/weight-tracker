@@ -72,6 +72,12 @@ const API = {
   // Catálogo externo (Open Food Facts) — sin caché para no reutilizar respuestas vacías
   searchCatalog:  q      => API._fetch('/api/foods/catalog/search?q=' + encodeURIComponent(q), { cache: 'no-store' }),
   lookupBarcode:  code   => API._fetch('/api/foods/catalog/barcode/' + encodeURIComponent(code), { cache: 'no-store' }),
+  readLabelPhoto: image  => API._fetch('/api/foods/from-label-photo', { method: 'POST', body: JSON.stringify({ image }) }),
+
+  // Gasto en IA
+  getAiCost:      ()     => API._fetch('/api/stats/ai-cost'),
+  getAdminAiCost: ()     => API._fetch('/api/admin/ai-cost'),
+  getAdminAiCostUser: id => API._fetch(`/api/admin/ai-cost/${id}`),
 
   // Meals (desglose por comidas)
   getMeals:       date   => API._fetch(`/api/meals/${date}`),

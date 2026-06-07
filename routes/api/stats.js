@@ -138,4 +138,32 @@ router.get('/prediction', (req, res) => {
   }
 });
 
+// GET /api/stats/ai-cost — gasto en IA del usuario: mes actual + últimos 30 días
+router.get('/ai-cost', (req, res) => {
+  try {
+    const uid = req.user.id;
+    const month = db.prepare(`
+      SELECT IFNULL(SUM(cost_eur), 0) AS cost, COUNT(*) AS calls
+      FROM token_usage
+      WHERE user_id = ? AND created_at >= datetime('now', 'start of month')
+    `).get(uid);
+
+    const total = db.prepare('SELECT IFNULL(SUM(cost_eur),0) AS cost FROM token_usage WHERE user_id = ?').get(uid);
+
+    const daily = db.prepare(`
+      SELECT date(created_at) AS day, ROUND(SUM(cost_eur), 6) AS cost, COUNT(*) AS calls
+      FROM token_usage
+      WHERE user_id = ? AND created_at >= datetime('now', '-30 days')
+      GROUP BY day ORDER BY day ASC
+    `).all(uid);
+
+    res.json({ success: true, data: {
+      month_cost: month.cost, month_calls: month.calls,
+      total_cost: total.cost, daily,
+    } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 module.exports = router;

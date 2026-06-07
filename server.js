@@ -17,7 +17,7 @@ try {
   process.exit(1);
 }
 
-app.use(express.json());
+app.use(express.json({ limit: '8mb' })); // 8mb para admitir fotos de etiquetas en base64
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Log de cada petición

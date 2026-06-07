@@ -4,6 +4,7 @@ const db      = require('../../db/database');
 const { requireAuth } = require('../../middleware/auth');
 const { MEAL_TYPES, computeEntryKcal, aggregateLegacyBuckets, fuzzyScore } = require('../../utils/meals');
 const openai  = require('../../utils/openai');
+const { recordUsage } = require('../../utils/usage');
 
 router.use(requireAuth);
 
@@ -313,6 +314,8 @@ router.post('/parse-text', async (req, res) => {
       if (e.code === 'NO_KEY') return res.status(503).json({ success: false, error: 'OPENAI_API_KEY no configurada' });
       return res.status(502).json({ success: false, error: 'No se pudo interpretar el texto ahora mismo. Inténtalo de nuevo.' });
     }
+
+    if (parsed.usage) recordUsage(req.user.id, 'parse_text', parsed.model, parsed.usage);
 
     const cache = db.prepare('SELECT * FROM foods WHERE user_id = ?').all(req.user.id);
 

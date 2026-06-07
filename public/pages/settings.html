@@ -248,6 +248,26 @@
     <div id="myFoodsList"></div>
   </div>
 
+  <!-- MI GASTO EN IA (WT3.4) -->
+  <div class="settings-section" id="aiCostSection" style="margin-top:24px;display:none">
+    <p class="settings-section-title">Mi gasto en IA</p>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px">
+      Coste de las funciones con IA (texto libre y foto a la etiqueta). Solo se gasta al usarlas.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+      <div class="stat-card primary"><div class="stat-value" id="aiCostMonth">—</div><div class="stat-label">Este mes</div></div>
+      <div class="stat-card"><div class="stat-value" id="aiCostTotal">—</div><div class="stat-label">Total</div></div>
+    </div>
+    <div id="aiCostCalls" style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;text-align:center"></div>
+  </div>
+
+  <!-- GASTO IA POR USUARIO (solo admin) -->
+  <div class="settings-section" id="adminAiCostSection" style="margin-top:24px;display:none">
+    <p class="settings-section-title">Gasto en IA por usuario</p>
+    <div id="adminAiCostTable"></div>
+    <div id="adminAiCostDetail" style="margin-top:12px"></div>
+  </div>
+
   <!-- ZONA PELIGRO -->
   <div class="settings-section" style="margin-top:24px;border:1px solid #fecaca;">
     <p class="settings-section-title" style="color:var(--error)">Zona de peligro</p>

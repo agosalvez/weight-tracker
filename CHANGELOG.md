@@ -1,5 +1,19 @@
 # Changelog
 
+## WT3.4 — 2026-06-07
+
+### Nuevo
+- **Foto a la etiqueta nutricional (IA Vision)**: botón "Foto a la etiqueta" en el panel de añadir alimento. La imagen se redimensiona en el cliente (máx 1000px, JPEG 0.8) y la lee `gpt-4o-mini` en modo visión (detalle `low` para abaratar). Convierte kJ→kcal si hace falta, usa valores por 100 g y guarda el alimento en tu caché (origen `label_photo`).
+- **Control de gasto en euros**: cada llamada a IA (texto y foto) registra tokens y coste en `token_usage`. Cada usuario ve "Mi gasto en IA" en Ajustes (mes y total). El administrador ve una tabla de gasto por usuario (este mes / mes anterior / total) y, al pulsar un usuario, su desglose por día y semana.
+- Helper de precios (`utils/pricing.js`) con tarifas por modelo en USD → EUR (`USD_TO_EUR`, por defecto 0.92). Endpoints `GET /api/stats/ai-cost`, `GET /api/admin/ai-cost`, `GET /api/admin/ai-cost/:userId` y `POST /api/foods/from-label-photo`.
+- Límite de body subido a 8 MB para admitir la foto en base64.
+- 14 tests nuevos (6 precios + 8 vision/coste). Suite total: 107.
+
+### Coste
+- Una lectura de etiqueta con `gpt-4o-mini` a detalle `low` ≈ 0,0001–0,0002 €. El gasto queda siempre visible para usuario y admin.
+
+---
+
 ## WT3.3 — 2026-06-07
 
 ### Nuevo

@@ -236,4 +236,19 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_templates_user ON meal_templates(user_id);
 `);
 
+// ── Paso 8: registro de uso/coste de IA (WT3.4) ───────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS token_usage (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at    TEXT DEFAULT (datetime('now')),
+    endpoint      TEXT NOT NULL,
+    model         TEXT NOT NULL,
+    input_tokens  INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    cost_eur      REAL NOT NULL DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS idx_usage_user_date ON token_usage(user_id, created_at);
+`);
+
 module.exports = db;

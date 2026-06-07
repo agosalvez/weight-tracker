@@ -17,8 +17,78 @@
   document.addEventListener('DOMContentLoaded', () => {
     loadVersion();
     loadFoods();
+    loadAiCost();
     document.getElementById('myFoodsFilter')?.addEventListener('input', e => render(e.target.value));
+    const user = Auth.getUser();
+    if (user && user.role === 'admin') loadAdminAiCost();
   });
+
+  const fmtEur = (n) => {
+    const v = Number(n) || 0;
+    if (v > 0 && v < 0.01) return v.toFixed(4) + ' €';
+    return v.toFixed(2) + ' €';
+  };
+
+  async function loadAiCost() {
+    try {
+      const c = await API.getAiCost();
+      document.getElementById('aiCostSection').style.display = 'block';
+      document.getElementById('aiCostMonth').textContent = fmtEur(c.month_cost);
+      document.getElementById('aiCostTotal').textContent = fmtEur(c.total_cost);
+      document.getElementById('aiCostCalls').textContent =
+        `${c.month_calls} consulta${c.month_calls === 1 ? '' : 's'} este mes`;
+    } catch {}
+  }
+
+  async function loadAdminAiCost() {
+    try {
+      const data = await API.getAdminAiCost();
+      const sec = document.getElementById('adminAiCostSection');
+      sec.style.display = 'block';
+      const rows = data.users.map(u => `
+        <tr data-uid="${u.id}" style="cursor:pointer;border-bottom:1px solid var(--border)">
+          <td style="padding:8px 4px">${esc(u.display_name || u.username)}</td>
+          <td style="padding:8px 4px;text-align:right;font-weight:700">${fmtEur(u.this_month)}</td>
+          <td style="padding:8px 4px;text-align:right;color:var(--text-muted)">${fmtEur(u.last_month)}</td>
+          <td style="padding:8px 4px;text-align:right;color:var(--text-muted)">${fmtEur(u.total)}</td>
+        </tr>`).join('');
+      setHTML(document.getElementById('adminAiCostTable'), `
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead><tr style="color:var(--text-muted);font-size:0.7rem;text-transform:uppercase">
+            <th style="text-align:left;padding:4px">Usuario</th>
+            <th style="text-align:right;padding:4px">Este mes</th>
+            <th style="text-align:right;padding:4px">Mes ant.</th>
+            <th style="text-align:right;padding:4px">Total</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div style="text-align:right;font-size:0.75rem;color:var(--text-muted);margin-top:8px">
+          Total mes: <strong>${fmtEur(data.grand.this_month)}</strong> · Histórico: ${fmtEur(data.grand.total)}
+        </div>`);
+      document.querySelectorAll('#adminAiCostTable tr[data-uid]').forEach(tr => {
+        tr.addEventListener('click', () => loadAdminUserDetail(parseInt(tr.dataset.uid)));
+      });
+    } catch {}
+  }
+
+  async function loadAdminUserDetail(uid) {
+    try {
+      const d = await API.getAdminAiCostUser(uid);
+      const days = d.byDay.slice(0, 14).map(x => `
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.8rem">
+          <span>${esc(x.day)}</span><span>${fmtEur(x.cost)} · ${x.calls}</span>
+        </div>`).join('') || '<div style="font-size:0.8rem;color:var(--text-muted)">Sin gasto</div>';
+      const weeks = d.byWeek.slice(0, 8).map(x => `
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.8rem">
+          <span>${esc(x.week)}</span><span>${fmtEur(x.cost)} · ${x.calls}</span>
+        </div>`).join('') || '';
+      setHTML(document.getElementById('adminAiCostDetail'), `
+        <div class="card card-sm">
+          <p class="sheet-section-title">Por día (últimos 14)</p>${days}
+          <p class="sheet-section-title" style="margin-top:10px">Por semana</p>${weeks}
+        </div>`);
+    } catch {}
+  }
 
   async function loadVersion() {
     try {

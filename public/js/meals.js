@@ -208,6 +208,8 @@ function openAddFoodSheet(mealType) {
   lastParsed = [];
   const bar = document.getElementById('habitualsBar');
   if (bar) setHTML(bar, '');
+  const lps = document.getElementById('labelPhotoStatus');
+  if (lps) setHTML(lps, '');
   document.getElementById('addFoodSheet').classList.add('open');
   renderHabituals(mealType);
   showTopFoods();
@@ -246,6 +248,61 @@ function wireSheetHandlers() {
   document.getElementById('scanBarcodeBtn')?.addEventListener('click', startBarcodeScan);
   document.getElementById('cancelScanBtn')?.addEventListener('click', stopBarcodeScan);
   document.getElementById('parseTextBtn')?.addEventListener('click', parseFreeText);
+  document.getElementById('labelPhotoBtn')?.addEventListener('click', () => document.getElementById('labelPhotoInput').click());
+  document.getElementById('labelPhotoInput')?.addEventListener('change', onLabelPhotoSelected);
+}
+
+// ─── Foto a la etiqueta (IA Vision) ────────────────────────────────────────────
+
+// Redimensiona la imagen en el cliente antes de subirla (ahorra ancho de banda
+// y tokens; 'low detail' en el backend ya limita el coste).
+function fileToResizedDataUrl(file, maxDim = 1000) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Imagen no válida'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+        else if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function onLabelPhotoSelected(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ''; // permitir volver a elegir la misma foto
+  if (!file) return;
+
+  const status = document.getElementById('labelPhotoStatus');
+  setHTML(status, '<div class="food-empty-state">Leyendo la etiqueta…</div>');
+  try {
+    const dataUrl = await fileToResizedDataUrl(file);
+    const data = await API.readLabelPhoto(dataUrl);
+    const food = data.food;
+    // Guardar en la caché y seleccionar para poner gramos
+    const saved = await API.createFood({
+      name: food.name || 'Producto (etiqueta)', brand: food.brand || null,
+      kcal_per_100g: food.kcal_per_100g, protein_g: food.protein_g ?? null,
+      carbs_g: food.carbs_g ?? null, fat_g: food.fat_g ?? null,
+      source: 'label_photo', confidence: food.confidence ?? 90,
+    });
+    setHTML(status, '');
+    showToast('Etiqueta leída y guardada');
+    selectCachedFood(saved);
+  } catch (err) {
+    setHTML(status, '');
+    showToast(err.message || 'No se pudo leer la etiqueta', 'error');
+  }
 }
 
 // ─── Texto libre con IA ────────────────────────────────────────────────────────

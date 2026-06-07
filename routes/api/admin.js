@@ -163,4 +163,53 @@ router.get('/stats', (req, res) => {
   }
 });
 
+// ─── GET /api/admin/ai-cost — gasto en IA por usuario (mes actual y anterior) ──
+router.get('/ai-cost', (req, res) => {
+  try {
+    const perUser = db.prepare(`
+      SELECT u.id, u.username, u.display_name,
+        IFNULL(SUM(CASE WHEN t.created_at >= datetime('now','start of month') THEN t.cost_eur END), 0) AS this_month,
+        IFNULL(SUM(CASE WHEN t.created_at >= datetime('now','start of month','-1 month')
+                         AND t.created_at <  datetime('now','start of month') THEN t.cost_eur END), 0) AS last_month,
+        IFNULL(SUM(t.cost_eur), 0) AS total,
+        COUNT(t.id) AS calls
+      FROM users u
+      LEFT JOIN token_usage t ON t.user_id = u.id
+      GROUP BY u.id
+      ORDER BY this_month DESC, total DESC
+    `).all();
+
+    const grand = db.prepare(`
+      SELECT
+        IFNULL(SUM(CASE WHEN created_at >= datetime('now','start of month') THEN cost_eur END),0) AS this_month,
+        IFNULL(SUM(cost_eur),0) AS total
+      FROM token_usage
+    `).get();
+
+    res.json({ success: true, data: { users: perUser, grand } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ─── GET /api/admin/ai-cost/:userId — desglose por día y semana de un usuario ──
+router.get('/ai-cost/:userId', (req, res) => {
+  try {
+    const uid = req.params.userId;
+    const byDay = db.prepare(`
+      SELECT date(created_at) AS day, ROUND(SUM(cost_eur),6) AS cost, COUNT(*) AS calls
+      FROM token_usage WHERE user_id = ? AND created_at >= datetime('now','-60 days')
+      GROUP BY day ORDER BY day DESC
+    `).all(uid);
+    const byWeek = db.prepare(`
+      SELECT strftime('%Y-W%W', created_at) AS week, ROUND(SUM(cost_eur),6) AS cost, COUNT(*) AS calls
+      FROM token_usage WHERE user_id = ?
+      GROUP BY week ORDER BY week DESC LIMIT 12
+    `).all(uid);
+    res.json({ success: true, data: { byDay, byWeek } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 module.exports = router;

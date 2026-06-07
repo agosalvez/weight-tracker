@@ -4,6 +4,8 @@ const db      = require('../../db/database');
 const { requireAuth } = require('../../middleware/auth');
 const { fuzzyScore, normalize } = require('../../utils/meals');
 const off = require('../../utils/openfoodfacts');
+const openai = require('../../utils/openai');
+const { recordUsage } = require('../../utils/usage');
 
 router.use(requireAuth);
 
@@ -115,6 +117,37 @@ router.get('/catalog/barcode/:code', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Producto no encontrado. Prueba a crearlo a mano o con foto a la etiqueta.' });
     }
     res.json({ success: true, data: { food: { ...product, origin: 'openfoodfacts' }, origin: 'openfoodfacts' } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/foods/from-label-photo — lee una etiqueta nutricional con IA (Vision).
+// Devuelve una previsualización (no guarda); el cliente la crea con POST /api/foods.
+router.post('/from-label-photo', async (req, res) => {
+  try {
+    if (!openai.isConfigured()) {
+      return res.status(503).json({ success: false, error: 'La lectura por foto no está disponible (falta configurar OPENAI_API_KEY).' });
+    }
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ success: false, error: 'Falta la imagen' });
+
+    const modelRow = db.prepare("SELECT value FROM app_config WHERE key = 'openai_model'").get();
+    let result;
+    try {
+      result = await openai.parseLabelPhoto(image, { model: modelRow?.value });
+    } catch (e) {
+      if (e.code === 'NO_KEY') return res.status(503).json({ success: false, error: 'OPENAI_API_KEY no configurada' });
+      if (e.code === 'BAD_IMAGE') return res.status(400).json({ success: false, error: 'Imagen inválida' });
+      return res.status(502).json({ success: false, error: 'No se pudo leer la etiqueta ahora mismo. Inténtalo de nuevo.' });
+    }
+
+    if (result.usage) recordUsage(req.user.id, 'label_photo', result.model, result.usage);
+
+    if (!result.food) {
+      return res.status(422).json({ success: false, error: 'No he podido leer las calorías de la etiqueta. Prueba con más luz o enfoca la tabla nutricional.' });
+    }
+    res.json({ success: true, data: { food: { ...result.food, source: 'label_photo', confidence: 90, origin: 'label_photo' } } });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
