@@ -157,11 +157,11 @@ router.get('/webauthn/register/options', requireAuth, async (req, res) => {
     const options = await generateRegistrationOptions({
       rpName:    RP_NAME,
       rpID:      RP_ID,
-      userID:    Buffer.from(String(user.id)),
+      userID:    new TextEncoder().encode(String(user.id)),
       userName:  user.username,
       userDisplayName: user.display_name || user.username,
       attestationType: 'none',
-      excludeCredentials: existing.map(c => ({ id: c.credential_id, type: 'public-key' })),
+      excludeCredentials: existing.map(c => ({ id: c.credential_id })),
       authenticatorSelection: {
         residentKey:      'preferred',
         userVerification: 'preferred',
@@ -195,9 +195,8 @@ router.post('/webauthn/register/verify', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Verificación fallida' });
     }
 
-    const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
-    const credIdB64  = Buffer.from(credentialID).toString('base64url');
-    const pubKeyB64  = Buffer.from(credentialPublicKey).toString('base64');
+    const { id: credIdB64, publicKey, counter } = verification.registrationInfo.credential;
+    const pubKeyB64  = Buffer.from(publicKey).toString('base64');
 
     db.prepare(
       'INSERT OR IGNORE INTO webauthn_credentials (user_id, credential_id, public_key, counter, device_name) VALUES (?, ?, ?, ?, ?)'
@@ -265,10 +264,10 @@ router.post('/webauthn/login/verify', async (req, res) => {
       expectedOrigin:        ORIGIN,
       expectedRPID:          RP_ID,
       requireUserVerification: false,
-      authenticator: {
-        credentialID:        Uint8Array.from(Buffer.from(dbCred.credential_id, 'base64url')),
-        credentialPublicKey: Uint8Array.from(Buffer.from(dbCred.public_key, 'base64')),
-        counter:             dbCred.counter,
+      credential: {
+        id:        dbCred.credential_id,
+        publicKey: Uint8Array.from(Buffer.from(dbCred.public_key, 'base64')),
+        counter:   dbCred.counter,
       },
     });
 

@@ -206,7 +206,7 @@
   // Importar SimpleWebAuthn desde CDN
   let startRegistration, startAuthentication;
   try {
-    const mod = await import('https://esm.sh/@simplewebauthn/browser@9');
+    const mod = await import('https://esm.sh/@simplewebauthn/browser@14.0.0');
     startRegistration   = mod.startRegistration;
     startAuthentication = mod.startAuthentication;
   } catch {
@@ -348,7 +348,7 @@
       const optsRes = await API.passkeyLoginOpts();
       if (!optsRes.success) throw new Error(optsRes.error);
 
-      const assertion = await startAuthentication(optsRes.data);
+      const assertion = await startAuthentication({ optionsJSON: optsRes.data });
       const verifyRes = await API.passkeyLoginVerify(assertion);
 
       if (!verifyRes.success) throw new Error(verifyRes.error);
