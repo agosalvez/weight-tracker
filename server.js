@@ -37,7 +37,6 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', ts: new Date().toI
 app.use('/api/logs',     require('./routes/api/logs'));
 app.use('/api/settings', require('./routes/api/settings'));
 app.use('/api/stats',    require('./routes/api/stats'));
-app.use('/api/weather',  require('./routes/api/weather'));
 app.use('/api/auth',     require('./routes/api/auth'));
 app.use('/api/admin',    require('./routes/api/admin'));
 app.use('/api/foods',    require('./routes/api/foods'));

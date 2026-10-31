@@ -1,5 +1,19 @@
 # Changelog
 
+## Sin publicar
+
+### Eliminado
+- **Widget del tiempo de AEMET**: fuera el widget de la pantalla principal, el campo "Localidad para el tiempo" en Ajustes, las rutas `/api/weather` y la variable `AEMET_API_KEY`. Las columnas `aemet_municipality_*` se quedan en las bases existentes pero ya no se usan.
+
+### Mantenimiento
+- Imagen base fijada a `node:22.23.4-alpine3.24` (parche de seguridad de Node de octubre de 2026).
+- `npm audit fix`: corrige vulnerabilidades en `proxy-addr`, `path-to-regexp`, `body-parser` y `qs`.
+- Express 4.22.3 (`qs` 6.16.2) y `@simplewebauthn/server` v14 (antes v9): `npm audit --omit=dev` sin vulnerabilidades.
+- Face ID / passkeys adaptado a la API v14 en servidor y navegador (`@simplewebauthn/browser@14.0.0`). Las passkeys ya registradas siguen funcionando.
+- 7 tests nuevos de WebAuthn con autenticador por software. Suite total: 114.
+
+---
+
 ## WT3.4 — 2026-06-07
 
 ### Nuevo

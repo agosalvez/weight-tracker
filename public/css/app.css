@@ -820,26 +820,6 @@ input[type=number] { -moz-appearance: textfield; }
   .page-header { padding: 48px 24px 40px; margin: 0 -20px; }
 }
 
-/* ── Widget del tiempo ───────────────────────────────────────── */
-
-.weather-widget {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.25);
-  border-radius: var(--radius-md);
-  padding: 8px 12px;
-  backdrop-filter: blur(4px);
-  flex-shrink: 0;
-}
-
-.weather-temps {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
 /* ── Meals: desglose por comidas (WT3.0) ───────────────────────────────────── */
 
 .meals-section { margin-top: 14px; }

@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('saveBtn').addEventListener('click', saveSettings);
-  initLocationSearch();
   loadSettings();
 });
 
@@ -24,11 +23,6 @@ async function loadSettings() {
     setVal('activityLevel', s.activity_level || 'sedentary');
     setVal('manualTDEE',    s.estimated_tdee);
 
-    if (s.aemet_municipality_id && s.aemet_municipality_name) {
-      document.getElementById('locationId').value     = s.aemet_municipality_id;
-      document.getElementById('locationSearch').value = s.aemet_municipality_name;
-    }
-
     updateBMRDisplay(s.estimated_bmr, s.estimated_tdee);
   } catch (e) {
     showToast('Error al cargar ajustes', 'error');
@@ -38,9 +32,6 @@ async function loadSettings() {
 // ─── Guardar ajustes ─────────────────────────────────────────────────────────
 
 async function saveSettings() {
-  const locationId   = document.getElementById('locationId').value   || null;
-  const locationName = document.getElementById('locationSearch').value.trim() || null;
-
   const data = {
     name:                   getVal('userName'),
     sex:                    getVal('sex') || null,
@@ -49,8 +40,6 @@ async function saveSettings() {
     target_weight_kg:       getVal('targetWeight') ? parseFloat(getVal('targetWeight')) : null,
     activity_level:         getVal('activityLevel') || 'sedentary',
     estimated_tdee:         getVal('manualTDEE') ? parseFloat(getVal('manualTDEE')) : null,
-    aemet_municipality_id:  locationId,
-    aemet_municipality_name: locationName,
   };
 
   const btn = document.getElementById('saveBtn');
@@ -111,54 +100,4 @@ function getVal(id) {
 function setVal(id, val) {
   const el = document.getElementById(id);
   if (el) el.value = val != null ? val : '';
-}
-
-// ─── Buscador de localidad AEMET ──────────────────────────────────────────────
-
-function initLocationSearch() {
-  const input    = document.getElementById('locationSearch');
-  const dropdown = document.getElementById('locationDropdown');
-  const hiddenId = document.getElementById('locationId');
-
-  let debounceTimer;
-
-  input.addEventListener('input', () => {
-    hiddenId.value = ''; // limpiar selección al escribir
-    clearTimeout(debounceTimer);
-    const q = input.value.trim();
-    if (q.length < 2) { dropdown.style.display = 'none'; return; }
-    debounceTimer = setTimeout(() => searchMunicipality(q), 300);
-  });
-
-  // Cerrar al hacer click fuera
-  document.addEventListener('click', e => {
-    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-      dropdown.style.display = 'none';
-    }
-  });
-
-  async function searchMunicipality(q) {
-    try {
-      const results = await API._fetch(`/api/weather/municipalities?q=${encodeURIComponent(q)}`);
-      if (!results.length) { dropdown.style.display = 'none'; return; }
-
-      dropdown.innerHTML = results.map(r =>
-        `<div data-id="${r.id}" data-name="${r.name}" style="padding:10px 14px;cursor:pointer;font-size:0.88rem;border-bottom:1px solid var(--border)">${r.name}</div>`
-      ).join('');
-
-      dropdown.querySelectorAll('[data-id]').forEach(el => {
-        el.addEventListener('mouseenter', () => el.style.background = 'var(--bg)');
-        el.addEventListener('mouseleave', () => el.style.background = '');
-        el.addEventListener('click', () => {
-          hiddenId.value = el.dataset.id;
-          input.value    = el.dataset.name;
-          dropdown.style.display = 'none';
-        });
-      });
-
-      dropdown.style.display = 'block';
-    } catch {
-      dropdown.style.display = 'none';
-    }
-  }
 }

@@ -2,7 +2,7 @@
 
 > Registra tu peso, calorías y evolución — desde el móvil, en segundos.
 
-Una web app **mobile-first** pensada para que abrir, registrar y cerrar te lleve menos de 10 segundos. Multi-usuario, con autenticación por Face ID / huella digital y widget del tiempo local. Sin instalación, sin suscripción. Solo tú y tus datos, en tu propio servidor.
+Una web app **mobile-first** pensada para que abrir, registrar y cerrar te lleve menos de 10 segundos. Multi-usuario, con autenticación por Face ID / huella digital. Sin instalación, sin suscripción. Solo tú y tus datos, en tu propio servidor.
 
 ![Node.js](https://img.shields.io/badge/Node.js-22-green?style=flat-square&logo=node.js)
 ![Express](https://img.shields.io/badge/Express-4-black?style=flat-square&logo=express)
@@ -26,7 +26,6 @@ Una web app **mobile-first** pensada para que abrir, registrar y cerrar te lleve
 - **Predice** cuándo llegarás a tu peso objetivo con regresión lineal
 - **Avisa** si tu ritmo de bajada es demasiado agresivo o saludable
 - **IMC** con barra visual y categoría de peso
-- **Widget del tiempo** de AEMET con localidad configurable por usuario
 - **Multi-usuario** — cada persona tiene sus propios datos completamente separados
 - **Face ID / huella digital** — acceso sin contraseña desde móvil o tablet (WebAuthn)
 - **Panel de administración** — gestión de usuarios, roles y configuración del registro
@@ -118,10 +117,6 @@ Requiere HTTPS en producción (ya incluido si usas Traefik).
 
 Cada usuario tiene sus propios registros, ajustes y estadísticas completamente separados. El administrador puede gestionar usuarios desde **Ajustes → Panel de administración**: crear cuentas, cambiar roles y activar/desactivar el registro público con un toggle. El primer usuario registrado siempre es administrador.
 
-### Widget del tiempo
-
-Cada usuario configura su propia localidad en **Ajustes → Localidad para el tiempo**. Al escribir el nombre del municipio aparece un autocompletado con los ~8.000 municipios de España de AEMET. El widget muestra icono del cielo, temperaturas min/máx y probabilidad de lluvia. Requiere `AEMET_API_KEY`.
-
 ---
 
 ## Variables de entorno
@@ -132,7 +127,6 @@ Cada usuario configura su propia localidad en **Ajustes → Localidad para el ti
 | `JWT_SECRET` | *(dev secret)* | Secreto para firmar los tokens JWT. **Cámbialo en producción** |
 | `RP_ID` | `localhost` | Dominio para WebAuthn (sin protocolo). En prod: `tu-dominio.com` |
 | `ORIGIN` | `http://localhost:3000` | URL completa del origen. En prod: `https://tu-dominio.com` |
-| `AEMET_API_KEY` | — | API key de [AEMET OpenData](https://opendata.aemet.es) para el widget del tiempo |
 | `OPENAI_API_KEY` | — | API key de [OpenAI](https://platform.openai.com) para el registro por texto libre (WT3.2). Si falta, esa función se desactiva |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Modelo de OpenAI a usar |
 
@@ -153,7 +147,7 @@ docker run -p 3000:3000 \
   weight-tracker
 ```
 
-Para producción con Traefik usa el `docker-stack.yml` incluido. Las variables de entorno sensibles (`JWT_SECRET`, `AEMET_API_KEY`) se configuran en Portainer o como secrets de Docker.
+Para producción con Traefik usa el `docker-stack.yml` incluido. Las variables de entorno sensibles (`JWT_SECRET`, `OPENAI_API_KEY`) se configuran en Portainer o como secrets de Docker.
 
 ---
 
@@ -185,8 +179,7 @@ weight-tracker/
 │   ├── logs.js                 # CRUD registros diarios
 │   ├── settings.js             # Perfil y objetivos
 │   ├── stats.js                # Estadísticas y predicción
-│   ├── admin.js                # Panel de administración (solo admin)
-│   └── weather.js              # Widget del tiempo (AEMET, caché por municipio)
+│   └── admin.js                # Panel de administración (solo admin)
 ├── utils/calculations.js       # BMR, TDEE, media móvil, regresión lineal
 └── public/
     ├── css/app.css
@@ -239,8 +232,6 @@ Todas las rutas de datos requieren autenticación (`Authorization: Bearer <token
 | `GET` | `/api/stats/weight-trend` | Gráfica de peso (`?days=90`) |
 | `GET` | `/api/stats/calories-trend` | Gráfica de calorías (`?days=30`) |
 | `GET` | `/api/stats/prediction` | Predicción de llegada al objetivo |
-| `GET` | `/api/weather` | Tiempo del día según localidad del usuario (caché 1h) |
-| `GET` | `/api/weather/municipalities?q=` | Buscar municipios AEMET por nombre |
 | `GET` | `/api/version` | Versión de la app (sin auth) |
 
 ### Alimentos y comidas (WT3.0)

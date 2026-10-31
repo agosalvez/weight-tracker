@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadDayData();
   loadQuickStats();
-  loadWeather();
 });
 
 // ─── Cargar día ───────────────────────────────────────────────────────────────
@@ -203,35 +202,6 @@ function parseNumber(id) {
 function setText(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
-}
-
-// ─── Widget del tiempo ────────────────────────────────────────────────────────
-
-async function loadWeather() {
-  try {
-    const w = await API._fetch('/api/weather');
-    if (!w) return; // sin localidad configurada
-    const widget = document.getElementById('weatherWidget');
-
-    document.getElementById('weatherIcon').textContent = w.icon;
-
-    const temps = w.tempMax != null && w.tempMin != null
-      ? `${w.tempMin}°–${w.tempMax}°C`
-      : w.tempMax != null ? `${w.tempMax}°C` : '';
-    document.getElementById('weatherTemps').textContent = temps;
-
-    const parts = [];
-    if (w.rainProb != null) parts.push(`${w.rainProb}% lluvia`);
-    if (w.wind != null)     parts.push(`${w.wind} km/h`);
-    document.getElementById('weatherRain').textContent = parts.join(' · ');
-
-    if (w.locationName) {
-      widget.title = `${w.locationName} — ${w.sky || ''}`;
-    }
-    widget.style.display = 'flex';
-  } catch {
-    // Silencioso — el widget simplemente no aparece
-  }
 }
 
 function changeDay(delta) {
