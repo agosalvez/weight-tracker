@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:22.23.4-alpine3.24
 
 # better-sqlite3 necesita compilar binarios nativos
 RUN apk add --no-cache python3 make g++
